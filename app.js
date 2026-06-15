@@ -6,12 +6,12 @@ function cid() {
 
 const DEFAULT_DATA = {
   sections: [
-    { id: cid(), name: "Articles & Notes", desc: "Articles read, with notes and analysis.", entries: [], refs: [] },
-    { id: cid(), name: "Books & Analysis", desc: "Books read, with reflections and arguments.", entries: [], refs: [] },
-    { id: cid(), name: "History & Politics", desc: "Historical readings, DBQ-style analysis, and political thought.", entries: [], refs: [] },
-    { id: cid(), name: "Writing", desc: "Notes on craft, and takeaways from writing practice.", entries: [], refs: [] },
-    { id: cid(), name: "Engineering Research", desc: "Research notes, designs, and technical explorations.", entries: [], refs: [] },
-    { id: cid(), name: "Past Projects", desc: "A record of completed projects.", entries: [], refs: [] },
+    { id: cid(), name: "Articles & Notes", desc: "Articles read, with notes and analysis.", entries: [], refs: [], notes: "" },
+    { id: cid(), name: "Books & Analysis", desc: "Books read, with reflections and arguments.", entries: [], refs: [], notes: "" },
+    { id: cid(), name: "History & Politics", desc: "Historical readings, DBQ-style analysis, and political thought.", entries: [], refs: [], notes: "" },
+    { id: cid(), name: "Writing", desc: "Notes on craft, and takeaways from writing practice.", entries: [], refs: [], notes: "" },
+    { id: cid(), name: "Engineering Research", desc: "Research notes, designs, and technical explorations.", entries: [], refs: [], notes: "" },
+    { id: cid(), name: "Past Projects", desc: "A record of completed projects.", entries: [], refs: [], notes: "" },
   ]
 };
 
@@ -23,6 +23,7 @@ function load() {
     if (!parsed.sections) return structuredClone(DEFAULT_DATA);
     for (const sec of parsed.sections) {
       if (!sec.refs) sec.refs = [];
+      if (sec.notes === undefined) sec.notes = "";
     }
     return parsed;
   } catch {
@@ -299,7 +300,12 @@ const TYPE_LABELS = {
   other: "Other",
 };
 
+const refNotesEl = document.getElementById("refNotes");
+
 function renderRefs(sec) {
+  refNotesEl.value = sec ? (sec.notes || "") : "";
+  refNotesEl.disabled = !sec;
+
   refItems.innerHTML = "";
   if (!sec || sec.refs.length === 0) {
     refCount.textContent = "";
@@ -369,6 +375,13 @@ function openRefDialog(sectionId, refId) {
   refDialog.showModal();
   refTitleInput.focus();
 }
+
+refNotesEl.addEventListener("blur", () => {
+  const sec = getActiveSection();
+  if (!sec) return;
+  sec.notes = refNotesEl.value;
+  save();
+});
 
 document.getElementById("addRefBtn").addEventListener("click", () => {
   const sec = getActiveSection();

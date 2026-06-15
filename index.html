@@ -32,14 +32,25 @@
         <div class="header-actions">
           <button id="renameSectionBtn" class="ghost-btn">Rename</button>
           <button id="deleteSectionBtn" class="ghost-btn danger">Delete Section</button>
-          <button id="addEntryBtn">+ New Entry</button>
+          <button id="addEntryBtn">+ New Page</button>
         </div>
       </header>
 
       <details class="reading-list" id="readingList">
         <summary>Reading List &amp; References <span id="refCount" class="ref-count"></span></summary>
-        <div id="refItems" class="ref-items"></div>
-        <button id="addRefBtn" class="ghost-btn">+ Add Reference</button>
+
+        <div class="ref-block">
+          <h4>Notes</h4>
+          <p class="ref-block-hint">Quick bullets — one per line. Things to look into, ideas, reminders.</p>
+          <textarea id="refNotes" class="ref-notes" rows="4" placeholder="- Look into...&#10;- Compare X and Y&#10;- Revisit chapter 3"></textarea>
+        </div>
+
+        <div class="ref-block">
+          <h4>Linked References</h4>
+          <p class="ref-block-hint">Specific books, articles, and papers with links.</p>
+          <div id="refItems" class="ref-items"></div>
+          <button id="addRefBtn" class="ghost-btn">+ Add Reference</button>
+        </div>
       </details>
 
       <div id="entryList" class="entry-list"></div>
