@@ -1,27 +1,30 @@
-const STORAGE_KEY = "curriculum-data";
-
-const DEFAULT_DATA = {
-  categories: [
-    { id: cid(), name: "Engineering", items: [
-      { id: cid(), title: "Pick a project to build", notes: "", status: "todo" }
-    ]},
-    { id: cid(), name: "Mathematics", items: [
-      { id: cid(), title: "Choose a textbook / course", notes: "", status: "todo" }
-    ]},
-    { id: cid(), name: "Languages", items: [] },
-    { id: cid(), name: "Literature", items: [] },
-    { id: cid(), name: "History / Politics", items: [] },
-  ]
-};
+const STORAGE_KEY = "commonplace-data";
 
 function cid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+const DEFAULT_DATA = {
+  sections: [
+    { id: cid(), name: "Articles & Notes", desc: "Articles read, with notes and analysis.", entries: [] },
+    { id: cid(), name: "Books & Analysis", desc: "Books read, with reflections and arguments.", entries: [] },
+    { id: cid(), name: "History & Politics", desc: "Historical readings, DBQ-style analysis, and political thought.", entries: [] },
+    { id: cid(), name: "Writing", desc: "Notes on craft, and takeaways from writing practice.", entries: [] },
+    { id: cid(), name: "Engineering Research", desc: "Research notes, designs, and technical explorations.", entries: [] },
+    { id: cid(), name: "Past Projects", desc: "A record of completed projects.", entries: [] },
+  ]
+};
+
 function load() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return structuredClone(DEFAULT_DATA);
-  try { return JSON.parse(raw); } catch { return structuredClone(DEFAULT_DATA); }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed.sections) return structuredClone(DEFAULT_DATA);
+    return parsed;
+  } catch {
+    return structuredClone(DEFAULT_DATA);
+  }
 }
 
 function save() {
@@ -29,173 +32,277 @@ function save() {
 }
 
 let data = load();
+let activeSectionId = data.sections[0]?.id || null;
 
-const board = document.getElementById("board");
-
-function render() {
-  board.innerHTML = "";
-  for (const cat of data.categories) {
-    board.appendChild(renderCategory(cat));
-  }
-}
-
-function renderCategory(cat) {
-  const done = cat.items.filter(i => i.status === "done").length;
-  const total = cat.items.length;
-
-  const el = document.createElement("section");
-  el.className = "category";
-
-  const header = document.createElement("div");
-  header.className = "category-header";
-  header.innerHTML = `
-    <div>
-      <h2>${escapeHtml(cat.name)}</h2>
-      <div class="meta">${done}/${total} done</div>
-    </div>
-    <div class="category-actions">
-      <button class="del-cat" title="Delete category">✕</button>
-    </div>
-  `;
-  header.querySelector(".del-cat").addEventListener("click", () => {
-    if (confirm(`Delete category "${cat.name}" and all its items?`)) {
-      data.categories = data.categories.filter(c => c.id !== cat.id);
-      save();
-      render();
-    }
-  });
-  el.appendChild(header);
-
-  const itemsEl = document.createElement("div");
-  itemsEl.className = "items";
-  if (cat.items.length === 0) {
-    const hint = document.createElement("div");
-    hint.className = "empty-hint";
-    hint.textContent = "No items yet.";
-    itemsEl.appendChild(hint);
-  }
-  for (const item of cat.items) {
-    itemsEl.appendChild(renderItem(cat, item));
-  }
-  el.appendChild(itemsEl);
-
-  const addBtn = document.createElement("button");
-  addBtn.className = "add-item-btn";
-  addBtn.textContent = "+ Add item";
-  addBtn.addEventListener("click", () => openItemDialog(cat.id, null));
-  el.appendChild(addBtn);
-
-  return el;
-}
-
-function renderItem(cat, item) {
-  const el = document.createElement("div");
-  el.className = `item ${item.status}`;
-  el.innerHTML = `
-    <div class="item-title">${escapeHtml(item.title)}</div>
-    ${item.notes ? `<div class="item-notes">${escapeHtml(item.notes)}</div>` : ""}
-  `;
-  el.addEventListener("click", () => openItemDialog(cat.id, item.id));
-  return el;
-}
+const sectionNav = document.getElementById("sectionNav");
+const sectionTitle = document.getElementById("sectionTitle");
+const sectionDesc = document.getElementById("sectionDesc");
+const entryList = document.getElementById("entryList");
 
 function escapeHtml(str) {
   const div = document.createElement("div");
-  div.textContent = str;
+  div.textContent = str || "";
   return div.innerHTML;
 }
 
-// --- Item dialog ---
-const itemDialog = document.getElementById("itemDialog");
-const itemForm = document.getElementById("itemForm");
-const dialogTitle = document.getElementById("dialogTitle");
-const categoryIdInput = document.getElementById("categoryId");
-const itemIdInput = document.getElementById("itemId");
-const itemTitleInput = document.getElementById("itemTitle");
-const itemNotesInput = document.getElementById("itemNotes");
-const itemStatusInput = document.getElementById("itemStatus");
-const deleteItemBtn = document.getElementById("deleteItemBtn");
-const cancelItemBtn = document.getElementById("cancelItemBtn");
-
-function openItemDialog(catId, itemId) {
-  categoryIdInput.value = catId;
-  itemIdInput.value = itemId || "";
-
-  if (itemId) {
-    const cat = data.categories.find(c => c.id === catId);
-    const item = cat.items.find(i => i.id === itemId);
-    dialogTitle.textContent = "Edit Item";
-    itemTitleInput.value = item.title;
-    itemNotesInput.value = item.notes;
-    itemStatusInput.value = item.status;
-    deleteItemBtn.style.display = "inline-block";
-  } else {
-    dialogTitle.textContent = "Add Item";
-    itemTitleInput.value = "";
-    itemNotesInput.value = "";
-    itemStatusInput.value = "todo";
-    deleteItemBtn.style.display = "none";
-  }
-  itemDialog.showModal();
-  itemTitleInput.focus();
+function getActiveSection() {
+  return data.sections.find(s => s.id === activeSectionId) || data.sections[0];
 }
 
-itemForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const catId = categoryIdInput.value;
-  const itemId = itemIdInput.value;
-  const cat = data.categories.find(c => c.id === catId);
+function render() {
+  renderNav();
+  renderContent();
+}
 
-  if (itemId) {
-    const item = cat.items.find(i => i.id === itemId);
-    item.title = itemTitleInput.value.trim();
-    item.notes = itemNotesInput.value.trim();
-    item.status = itemStatusInput.value;
+function renderNav() {
+  sectionNav.innerHTML = "";
+  for (const sec of data.sections) {
+    const btn = document.createElement("button");
+    btn.className = "nav-item" + (sec.id === activeSectionId ? " active" : "");
+    btn.textContent = sec.name;
+    btn.addEventListener("click", () => {
+      activeSectionId = sec.id;
+      render();
+    });
+    sectionNav.appendChild(btn);
+  }
+}
+
+function renderContent() {
+  const sec = getActiveSection();
+  if (!sec) {
+    sectionTitle.textContent = "No sections yet";
+    sectionDesc.textContent = "";
+    entryList.innerHTML = "";
+    return;
+  }
+  sectionTitle.textContent = sec.name;
+  sectionDesc.textContent = sec.desc || "";
+
+  entryList.innerHTML = "";
+  if (sec.entries.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Nothing here yet. Add your first entry.";
+    entryList.appendChild(empty);
+    return;
+  }
+
+  const sorted = [...sec.entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  for (const entry of sorted) {
+    entryList.appendChild(renderEntryCard(sec, entry));
+  }
+}
+
+function renderEntryCard(sec, entry) {
+  const card = document.createElement("article");
+  card.className = "entry-card";
+
+  const tagsHtml = (entry.tags || [])
+    .map(t => `<span class="tag">${escapeHtml(t)}</span>`)
+    .join("");
+
+  const dateStr = entry.date ? formatDate(entry.date) : "";
+  const excerpt = (entry.body || "").slice(0, 220);
+
+  card.innerHTML = `
+    <h3 class="entry-title">${escapeHtml(entry.title)}</h3>
+    <p class="entry-meta">${[dateStr, entry.ref].filter(Boolean).map(escapeHtml).join(" — ")}</p>
+    <p class="entry-excerpt">${escapeHtml(excerpt)}${entry.body && entry.body.length > 220 ? "…" : ""}</p>
+    <div>${tagsHtml}</div>
+  `;
+  card.addEventListener("click", () => openEntryView(sec.id, entry.id));
+  return card;
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+}
+
+// --- Entry edit dialog ---
+const entryDialog = document.getElementById("entryDialog");
+const entryForm = document.getElementById("entryForm");
+const entryDialogTitle = document.getElementById("entryDialogTitle");
+const sectionIdInput = document.getElementById("sectionId");
+const entryIdInput = document.getElementById("entryId");
+const entryTitleInput = document.getElementById("entryTitle");
+const entryDateInput = document.getElementById("entryDate");
+const entryTagsInput = document.getElementById("entryTags");
+const entryRefInput = document.getElementById("entryRef");
+const entryBodyInput = document.getElementById("entryBody");
+const deleteEntryBtn = document.getElementById("deleteEntryBtn");
+const cancelEntryBtn = document.getElementById("cancelEntryBtn");
+
+function openEntryDialog(sectionId, entryId) {
+  sectionIdInput.value = sectionId;
+  entryIdInput.value = entryId || "";
+
+  if (entryId) {
+    const sec = data.sections.find(s => s.id === sectionId);
+    const entry = sec.entries.find(e => e.id === entryId);
+    entryDialogTitle.textContent = "Edit Entry";
+    entryTitleInput.value = entry.title;
+    entryDateInput.value = entry.date || "";
+    entryTagsInput.value = (entry.tags || []).join(", ");
+    entryRefInput.value = entry.ref || "";
+    entryBodyInput.value = entry.body || "";
+    deleteEntryBtn.style.display = "inline-block";
   } else {
-    cat.items.push({
+    entryDialogTitle.textContent = "New Entry";
+    entryTitleInput.value = "";
+    entryDateInput.value = new Date().toISOString().slice(0, 10);
+    entryTagsInput.value = "";
+    entryRefInput.value = "";
+    entryBodyInput.value = "";
+    deleteEntryBtn.style.display = "none";
+  }
+  entryDialog.showModal();
+  entryTitleInput.focus();
+}
+
+entryForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const sec = data.sections.find(s => s.id === sectionIdInput.value);
+  const entryId = entryIdInput.value;
+
+  const tags = entryTagsInput.value
+    .split(",")
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  if (entryId) {
+    const entry = sec.entries.find(e => e.id === entryId);
+    entry.title = entryTitleInput.value.trim();
+    entry.date = entryDateInput.value;
+    entry.tags = tags;
+    entry.ref = entryRefInput.value.trim();
+    entry.body = entryBodyInput.value;
+  } else {
+    sec.entries.push({
       id: cid(),
-      title: itemTitleInput.value.trim(),
-      notes: itemNotesInput.value.trim(),
-      status: itemStatusInput.value
+      title: entryTitleInput.value.trim(),
+      date: entryDateInput.value,
+      tags,
+      ref: entryRefInput.value.trim(),
+      body: entryBodyInput.value,
     });
   }
   save();
   render();
-  itemDialog.close();
+  entryDialog.close();
 });
 
-cancelItemBtn.addEventListener("click", () => itemDialog.close());
+cancelEntryBtn.addEventListener("click", () => entryDialog.close());
 
-deleteItemBtn.addEventListener("click", () => {
-  const catId = categoryIdInput.value;
-  const itemId = itemIdInput.value;
-  const cat = data.categories.find(c => c.id === catId);
-  cat.items = cat.items.filter(i => i.id !== itemId);
+deleteEntryBtn.addEventListener("click", () => {
+  const sec = data.sections.find(s => s.id === sectionIdInput.value);
+  sec.entries = sec.entries.filter(e => e.id !== entryIdInput.value);
   save();
   render();
-  itemDialog.close();
+  entryDialog.close();
+  entryViewDialog.close();
 });
 
-// --- Category dialog ---
-const categoryDialog = document.getElementById("categoryDialog");
-const categoryForm = document.getElementById("categoryForm");
-const categoryNameInput = document.getElementById("categoryName");
-const cancelCategoryBtn = document.getElementById("cancelCategoryBtn");
-
-document.getElementById("addCategoryBtn").addEventListener("click", () => {
-  categoryNameInput.value = "";
-  categoryDialog.showModal();
-  categoryNameInput.focus();
+document.getElementById("addEntryBtn").addEventListener("click", () => {
+  const sec = getActiveSection();
+  if (!sec) return alert("Create a section first.");
+  openEntryDialog(sec.id, null);
 });
 
-cancelCategoryBtn.addEventListener("click", () => categoryDialog.close());
+// --- Entry view dialog ---
+const entryViewDialog = document.getElementById("entryViewDialog");
+const viewTitle = document.getElementById("viewTitle");
+const viewMeta = document.getElementById("viewMeta");
+const viewRef = document.getElementById("viewRef");
+const viewBody = document.getElementById("viewBody");
+const editEntryBtn = document.getElementById("editEntryBtn");
+const closeViewBtn = document.getElementById("closeViewBtn");
 
-categoryForm.addEventListener("submit", (e) => {
+let viewingSectionId = null;
+let viewingEntryId = null;
+
+function openEntryView(sectionId, entryId) {
+  const sec = data.sections.find(s => s.id === sectionId);
+  const entry = sec.entries.find(e => e.id === entryId);
+  viewingSectionId = sectionId;
+  viewingEntryId = entryId;
+
+  viewTitle.textContent = entry.title;
+  const dateStr = entry.date ? formatDate(entry.date) : "";
+  const tags = (entry.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+  viewMeta.innerHTML = [escapeHtml(dateStr), tags].filter(Boolean).join(" &nbsp; ");
+  viewRef.textContent = entry.ref || "";
+  viewRef.style.display = entry.ref ? "block" : "none";
+  viewBody.textContent = entry.body || "";
+
+  entryViewDialog.showModal();
+}
+
+editEntryBtn.addEventListener("click", () => {
+  entryViewDialog.close();
+  openEntryDialog(viewingSectionId, viewingEntryId);
+});
+
+closeViewBtn.addEventListener("click", () => entryViewDialog.close());
+
+// --- Section dialog (add / rename) ---
+const sectionDialog = document.getElementById("sectionDialog");
+const sectionForm = document.getElementById("sectionForm");
+const sectionDialogTitle = document.getElementById("sectionDialogTitle");
+const sectionEditIdInput = document.getElementById("sectionEditId");
+const sectionNameInput = document.getElementById("sectionName");
+const sectionDescInput = document.getElementById("sectionDescInput");
+const cancelSectionBtn = document.getElementById("cancelSectionBtn");
+
+document.getElementById("addSectionBtn").addEventListener("click", () => {
+  sectionDialogTitle.textContent = "New Section";
+  sectionEditIdInput.value = "";
+  sectionNameInput.value = "";
+  sectionDescInput.value = "";
+  sectionDialog.showModal();
+  sectionNameInput.focus();
+});
+
+document.getElementById("renameSectionBtn").addEventListener("click", () => {
+  const sec = getActiveSection();
+  if (!sec) return;
+  sectionDialogTitle.textContent = "Edit Section";
+  sectionEditIdInput.value = sec.id;
+  sectionNameInput.value = sec.name;
+  sectionDescInput.value = sec.desc || "";
+  sectionDialog.showModal();
+  sectionNameInput.focus();
+});
+
+cancelSectionBtn.addEventListener("click", () => sectionDialog.close());
+
+sectionForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  data.categories.push({ id: cid(), name: categoryNameInput.value.trim(), items: [] });
+  const editId = sectionEditIdInput.value;
+  if (editId) {
+    const sec = data.sections.find(s => s.id === editId);
+    sec.name = sectionNameInput.value.trim();
+    sec.desc = sectionDescInput.value.trim();
+  } else {
+    const sec = { id: cid(), name: sectionNameInput.value.trim(), desc: sectionDescInput.value.trim(), entries: [] };
+    data.sections.push(sec);
+    activeSectionId = sec.id;
+  }
   save();
   render();
-  categoryDialog.close();
+  sectionDialog.close();
+});
+
+document.getElementById("deleteSectionBtn").addEventListener("click", () => {
+  const sec = getActiveSection();
+  if (!sec) return;
+  if (!confirm(`Delete section "${sec.name}" and all its entries?`)) return;
+  data.sections = data.sections.filter(s => s.id !== sec.id);
+  activeSectionId = data.sections[0]?.id || null;
+  save();
+  render();
 });
 
 render();

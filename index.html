@@ -3,48 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Curriculum</title>
+<title>Commonplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>My Self-Curriculum</h1>
-  <button id="addCategoryBtn">+ New Category</button>
-</header>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>Commonplace</h1>
+      <p class="tagline">A working record of study</p>
+    </div>
+    <nav id="sectionNav"></nav>
+    <button id="addSectionBtn" class="ghost-btn">+ New Section</button>
+  </aside>
 
-<main id="board"></main>
+  <main class="content">
+    <header class="content-header">
+      <div>
+        <h2 id="sectionTitle"></h2>
+        <p id="sectionDesc" class="section-desc"></p>
+      </div>
+      <div class="header-actions">
+        <button id="renameSectionBtn" class="ghost-btn">Rename</button>
+        <button id="deleteSectionBtn" class="ghost-btn danger">Delete Section</button>
+        <button id="addEntryBtn">+ New Entry</button>
+      </div>
+    </header>
 
-<dialog id="itemDialog">
-  <form id="itemForm">
-    <h2 id="dialogTitle">Add Item</h2>
-    <input type="hidden" id="categoryId">
-    <input type="hidden" id="itemId">
-    <label>Title<input type="text" id="itemTitle" required></label>
-    <label>Notes / Link<textarea id="itemNotes"></textarea></label>
-    <label>Status
-      <select id="itemStatus">
-        <option value="todo">To Do</option>
-        <option value="active">In Progress</option>
-        <option value="done">Done</option>
-      </select>
-    </label>
+    <div id="entryList" class="entry-list"></div>
+  </main>
+</div>
+
+<dialog id="entryDialog">
+  <form id="entryForm">
+    <h2 id="entryDialogTitle">New Entry</h2>
+    <input type="hidden" id="sectionId">
+    <input type="hidden" id="entryId">
+    <label>Title<input type="text" id="entryTitle" required></label>
+    <label>Date<input type="date" id="entryDate"></label>
+    <label>Tags <span class="hint">(comma separated)</span><input type="text" id="entryTags" placeholder="e.g. Stoicism, Roman history"></label>
+    <label>Source / Reference <span class="hint">(book, article, link...)</span><input type="text" id="entryRef"></label>
+    <label>Notes &amp; Analysis<textarea id="entryBody" rows="10"></textarea></label>
     <div class="dialog-actions">
-      <button type="button" id="deleteItemBtn">Delete</button>
-      <button type="button" id="cancelItemBtn">Cancel</button>
+      <button type="button" id="deleteEntryBtn">Delete</button>
+      <button type="button" id="cancelEntryBtn">Cancel</button>
       <button type="submit">Save</button>
     </div>
   </form>
 </dialog>
 
-<dialog id="categoryDialog">
-  <form id="categoryForm">
-    <h2>New Category</h2>
-    <label>Name<input type="text" id="categoryName" required></label>
+<dialog id="sectionDialog">
+  <form id="sectionForm">
+    <h2 id="sectionDialogTitle">New Section</h2>
+    <input type="hidden" id="sectionEditId">
+    <label>Name<input type="text" id="sectionName" required placeholder="e.g. Engineering Research"></label>
+    <label>Description <span class="hint">(optional)</span><input type="text" id="sectionDescInput" placeholder="What lives in this section?"></label>
     <div class="dialog-actions">
-      <button type="button" id="cancelCategoryBtn">Cancel</button>
-      <button type="submit">Add</button>
+      <button type="button" id="cancelSectionBtn">Cancel</button>
+      <button type="submit">Save</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="entryViewDialog">
+  <div class="entry-view">
+    <div class="entry-view-header">
+      <div>
+        <h2 id="viewTitle"></h2>
+        <p class="entry-meta" id="viewMeta"></p>
+      </div>
+      <button id="editEntryBtn" class="ghost-btn">Edit</button>
+    </div>
+    <p id="viewRef" class="entry-ref"></p>
+    <div id="viewBody" class="entry-body"></div>
+    <div class="dialog-actions">
+      <button type="button" id="closeViewBtn">Close</button>
+    </div>
+  </div>
 </dialog>
 
 <script src="app.js"></script>
