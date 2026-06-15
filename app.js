@@ -5,7 +5,7 @@ function cid() {
 }
 
 function newContainer(name, desc) {
-  return { id: cid(), name, desc, cover: "", entries: [], refs: [], notes: "" };
+  return { id: cid(), name, desc, cover: "", entries: [], refs: [], plan: "", skills: "" };
 }
 
 const DEFAULT_DATA = {
@@ -52,7 +52,9 @@ function load() {
 
 function normalizeContainer(c) {
   if (!c.refs) c.refs = [];
-  if (c.notes === undefined) c.notes = "";
+  if (c.plan === undefined) c.plan = c.notes !== undefined ? c.notes : "";
+  if (c.skills === undefined) c.skills = "";
+  delete c.notes;
   if (!c.entries) c.entries = [];
   if (c.cover === undefined) c.cover = "";
 }
@@ -132,55 +134,6 @@ document.getElementById("homeNavBtn").addEventListener("click", goHome);
 function renderHome() {
   document.getElementById("homeIntro").innerHTML = data.homeIntro || "";
   renderHomeLinks();
-
-  const grid = document.getElementById("homeSectionGrid");
-  grid.innerHTML = "";
-  for (const sec of data.sections) {
-    const totalPages = sec.entries.length + sec.subsections.reduce((n, s) => n + s.entries.length, 0);
-    const card = document.createElement("button");
-    card.className = "category-card";
-    card.innerHTML = `
-      ${sec.cover ? `<img class="category-card-cover" src="${sec.cover}" alt="">` : ""}
-      <h4>${escapeHtml(sec.name)}</h4>
-      ${sec.desc ? `<p>${escapeHtml(sec.desc)}</p>` : ""}
-      <span class="category-count">${totalPages} page${totalPages === 1 ? "" : "s"}${sec.subsections.length ? ` · ${sec.subsections.length} categor${sec.subsections.length === 1 ? "y" : "ies"}` : ""}</span>
-    `;
-    card.addEventListener("click", () => {
-      activeSectionId = sec.id;
-      activeSubsectionId = null;
-      render();
-    });
-    grid.appendChild(card);
-  }
-
-  // Recently updated pages across all sections/categories
-  const all = [];
-  for (const sec of data.sections) {
-    for (const e of sec.entries) all.push({ entry: e, sectionId: sec.id, subsectionId: null, sectionName: sec.name });
-    for (const sub of sec.subsections) {
-      for (const e of sub.entries) all.push({ entry: e, sectionId: sec.id, subsectionId: sub.id, sectionName: `${sec.name} / ${sub.name}` });
-    }
-  }
-  all.sort((a, b) => (b.entry.date || "").localeCompare(a.entry.date || ""));
-
-  const recentList = document.getElementById("homeRecentList");
-  recentList.innerHTML = "";
-  if (all.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = "Nothing written yet. Pick a section to get started.";
-    recentList.appendChild(empty);
-    return;
-  }
-  for (const item of all.slice(0, 10)) {
-    const card = renderEntryCard(item.entry);
-    const path = document.createElement("p");
-    path.className = "home-recent-path";
-    path.textContent = item.sectionName;
-    card.insertBefore(path, card.firstChild);
-    card.onclick = () => openPage(item.sectionId, item.subsectionId, item.entry.id);
-    recentList.appendChild(card);
-  }
 }
 
 // ================= UNDO =================
@@ -530,10 +483,12 @@ imageFileInput.addEventListener("change", () => {
 // ================= REFERENCES / READING LIST =================
 const refItems = document.getElementById("refItems");
 const refCount = document.getElementById("refCount");
-const refNotesEl = document.getElementById("refNotes");
-const notesDisplay = document.getElementById("notesDisplay");
-const notesIndicator = document.getElementById("notesIndicator");
-
+const planDisplay = document.getElementById("planDisplay");
+const planIndicator = document.getElementById("planIndicator");
+const planNotesEl = document.getElementById("planNotes");
+const skillsDisplay = document.getElementById("skillsDisplay");
+const skillsIndicator = document.getElementById("skillsIndicator");
+const skillsNotesEl = document.getElementById("skillsNotes");
 const TYPE_LABELS = {
   book: "Book",
   article: "Article",
@@ -542,24 +497,30 @@ const TYPE_LABELS = {
   other: "Other",
 };
 
-function renderRefs(container) {
-  // Notes / Plan & Skills — bullet display, click to edit
+// Generic renderer for the bullet-list "Plan" and "Skills" panels.
+function renderBulletPanel(container, field, displayEl, indicatorEl, emptyHint) {
   if (!container) {
-    notesDisplay.innerHTML = `<div class="ref-empty">Nothing yet.</div>`;
-    notesIndicator.textContent = "";
-    refNotesEl.value = "";
-    refNotesEl.hidden = true;
-    notesDisplay.hidden = false;
-  } else {
-    const lines = (container.notes || "").split("\n").map(l => l.trim()).filter(Boolean);
-    notesIndicator.textContent = lines.length ? `(${lines.length})` : "";
-    if (lines.length) {
-      notesDisplay.innerHTML = `<ul>${lines.map(l => `<li>${escapeHtml(l.replace(/^[-*]\s*/, ""))}</li>`).join("")}</ul>`;
-    } else {
-      notesDisplay.innerHTML = `<div class="ref-empty">Click to add focus areas, skills, and plans for this ${activeSubsectionId ? "category" : "section"}.</div>`;
-    }
-    refNotesEl.value = container.notes || "";
+    displayEl.innerHTML = `<div class="ref-empty">Nothing yet.</div>`;
+    indicatorEl.textContent = "";
+    return;
   }
+  const lines = (container[field] || "").split("\n").map(l => l.trim()).filter(Boolean);
+  indicatorEl.textContent = lines.length ? `(${lines.length})` : "";
+  if (lines.length) {
+    displayEl.innerHTML = `<ul>${lines.map(l => `<li>${escapeHtml(l.replace(/^[-*]\s*/, ""))}</li>`).join("")}</ul>`;
+  } else {
+    displayEl.innerHTML = `<div class="ref-empty">${emptyHint}</div>`;
+  }
+}
+
+function renderRefs(container) {
+  const levelLabel = activeSubsectionId ? "category" : "section";
+  renderBulletPanel(container, "plan", planDisplay, planIndicator,
+    `Click to set the plan and intentions for this ${levelLabel} — what you're working toward and why.`);
+  renderBulletPanel(container, "skills", skillsDisplay, skillsIndicator,
+    `Click to list skills or techniques to build or revisit in this ${levelLabel}.`);
+  planNotesEl.value = container ? (container.plan || "") : "";
+  skillsNotesEl.value = container ? (container.skills || "") : "";
 
   // Linked references
   refItems.innerHTML = "";
@@ -614,24 +575,29 @@ function renderRefs(container) {
   }
 }
 
-// Notes click-to-edit
-notesDisplay.addEventListener("click", () => {
-  const container = getActiveContainer();
-  if (!container) return;
-  notesDisplay.hidden = true;
-  refNotesEl.hidden = false;
-  refNotesEl.focus();
-});
+// Plan / Skills click-to-edit
+function wireBulletEditor(displayEl, textareaEl, field) {
+  displayEl.addEventListener("click", () => {
+    const container = getActiveContainer();
+    if (!container) return;
+    displayEl.hidden = true;
+    textareaEl.hidden = false;
+    textareaEl.focus();
+  });
 
-refNotesEl.addEventListener("blur", () => {
-  const container = getActiveContainer();
-  if (!container) return;
-  container.notes = refNotesEl.value;
-  save();
-  refNotesEl.hidden = true;
-  notesDisplay.hidden = false;
-  renderRefs(container);
-});
+  textareaEl.addEventListener("blur", () => {
+    const container = getActiveContainer();
+    if (!container) return;
+    container[field] = textareaEl.value;
+    save();
+    textareaEl.hidden = true;
+    displayEl.hidden = false;
+    renderRefs(container);
+  });
+}
+
+wireBulletEditor(planDisplay, planNotesEl, "plan");
+wireBulletEditor(skillsDisplay, skillsNotesEl, "skills");
 
 const refDialog = document.getElementById("refDialog");
 const refForm = document.getElementById("refForm");

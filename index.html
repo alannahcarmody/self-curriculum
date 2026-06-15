@@ -28,7 +28,7 @@
       <header class="content-header">
         <div>
           <h2>Commonplace</h2>
-          <p class="section-desc">An overview of your sections and recent writing.</p>
+          <p class="section-desc">Your starting point.</p>
         </div>
       </header>
 
@@ -37,11 +37,6 @@
       <h3 class="home-subheading">Links</h3>
       <div id="homeLinks" class="ref-items"></div>
       <button id="addHomeLinkBtn" class="ghost-btn">+ Add Link</button>
-
-      <div id="homeSectionGrid" class="category-grid home-grid"></div>
-
-      <h3 class="home-subheading">Recently updated</h3>
-      <div id="homeRecentList" class="entry-list"></div>
     </div>
 
     <!-- LIST VIEW -->
@@ -71,11 +66,18 @@
       <div id="categoryGrid" class="category-grid"></div>
 
       <div class="toggles">
-        <details class="reading-list" id="notesPanel">
-          <summary>Plan &amp; Skills <span id="notesIndicator" class="ref-count"></span></summary>
-          <p class="ref-block-hint">What guides the work in this section — focus areas, skills to build, things to revisit. One per line.</p>
-          <div id="notesDisplay" class="notes-display"></div>
-          <textarea id="refNotes" class="ref-notes" rows="4" placeholder="- Build intuition for...&#10;- Revisit...&#10;- Get comfortable with..." hidden></textarea>
+        <details class="reading-list" id="planPanel">
+          <summary>Plan <span id="planIndicator" class="ref-count"></span></summary>
+          <p class="ref-block-hint">The intentions and direction guiding this section — what you're working toward and why. One per line.</p>
+          <div id="planDisplay" class="notes-display"></div>
+          <textarea id="planNotes" class="ref-notes" rows="4" placeholder="- Goal for this section...&#10;- Why it matters..." hidden></textarea>
+        </details>
+
+        <details class="reading-list" id="skillsPanel">
+          <summary>Skills <span id="skillsIndicator" class="ref-count"></span></summary>
+          <p class="ref-block-hint">Specific skills or techniques to build or revisit here. One per line.</p>
+          <div id="skillsDisplay" class="notes-display"></div>
+          <textarea id="skillsNotes" class="ref-notes" rows="4" placeholder="- Build intuition for...&#10;- Get comfortable with..." hidden></textarea>
         </details>
 
         <details class="reading-list" id="readingList">
