@@ -8,6 +8,8 @@ function newContainer(name, desc) {
   return { id: cid(), name, desc, cover: "", entries: [], refs: [], plan: "", skills: "" };
 }
 
+let activeTagFilter = null;
+
 const DEFAULT_DATA = {
   homeIntro: "",
   homeLinks: [],
@@ -57,6 +59,9 @@ function normalizeContainer(c) {
   delete c.notes;
   if (!c.entries) c.entries = [];
   if (c.cover === undefined) c.cover = "";
+  for (const e of c.entries) {
+    if (e.pinned === undefined) e.pinned = false;
+  }
 }
 
 function save() {
@@ -73,6 +78,7 @@ const sectionDesc = document.getElementById("sectionDesc");
 const entryList = document.getElementById("entryList");
 const breadcrumb = document.getElementById("breadcrumb");
 const categoryGrid = document.getElementById("categoryGrid");
+const tagFilterBar = document.getElementById("tagFilterBar");
 const addCategoryBtn = document.getElementById("addCategoryBtn");
 
 const listView = document.getElementById("listView");
@@ -272,18 +278,46 @@ function renderContent() {
 
   renderRefs(container);
 
+  // Tag filter bar
+  tagFilterBar.innerHTML = "";
+  const allTags = [...new Set(container.entries.flatMap(e => e.tags || []))].sort((a, b) => a.localeCompare(b));
+  if (!allTags.includes(activeTagFilter)) activeTagFilter = null;
+  if (allTags.length > 0) {
+    tagFilterBar.hidden = false;
+    for (const tag of allTags) {
+      const chip = document.createElement("button");
+      chip.className = "tag-filter" + (activeTagFilter === tag ? " active" : "");
+      chip.textContent = tag;
+      chip.addEventListener("click", () => {
+        activeTagFilter = activeTagFilter === tag ? null : tag;
+        renderContent();
+      });
+      tagFilterBar.appendChild(chip);
+    }
+  } else {
+    tagFilterBar.hidden = true;
+  }
+
   entryList.innerHTML = "";
-  if (container.entries.length === 0) {
+  let entries = container.entries;
+  if (activeTagFilter) entries = entries.filter(e => (e.tags || []).includes(activeTagFilter));
+
+  if (entries.length === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = activeSubsectionId
+    empty.textContent = activeTagFilter
+      ? "No pages with this tag."
+      : activeSubsectionId
       ? "Nothing here yet. Add your first page."
       : "Nothing here yet. Add a page, or break this section into categories above.";
     entryList.appendChild(empty);
     return;
   }
 
-  const sorted = [...container.entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const sorted = [...entries].sort((a, b) => {
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+    return (b.date || "").localeCompare(a.date || "");
+  });
   for (const entry of sorted) {
     entryList.appendChild(renderEntryCard(entry));
   }
@@ -301,7 +335,10 @@ function renderEntryCard(entry) {
   const excerptText = (entry.body || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   const excerpt = excerptText.slice(0, 220);
 
+  if (entry.pinned) card.classList.add("pinned");
+
   card.innerHTML = `
+    ${entry.pinned ? `<span class="pin-badge">📌 Pinned</span>` : ""}
     <h3 class="entry-title">${escapeHtml(entry.title) || "Untitled"}</h3>
     <p class="entry-meta">${[dateStr, entry.ref].filter(Boolean).map(escapeHtml).join(" — ")}</p>
     <p class="entry-excerpt">${escapeHtml(excerpt)}${excerptText.length > 220 ? "…" : ""}</p>
@@ -362,6 +399,7 @@ const entryBodyEl = document.getElementById("entryBody");
 const imageFileInput = document.getElementById("imageFileInput");
 const saveIndicator = document.getElementById("saveIndicator");
 const deleteEntryBtn = document.getElementById("deleteEntryBtn");
+const pinEntryBtn = document.getElementById("pinEntryBtn");
 
 let saveDebounce = null;
 
@@ -378,6 +416,7 @@ function openPage(sectionId, subsectionId, entryId) {
   entryTagsInput.value = (entry.tags || []).join(", ");
   entryRefInput.value = entry.ref || "";
   entryBodyEl.innerHTML = entry.body || "";
+  updatePinBtn(entry);
 
   saveIndicator.classList.remove("visible");
   showView("page");
@@ -385,6 +424,20 @@ function openPage(sectionId, subsectionId, entryId) {
     entryTitleInput.focus();
   }
 }
+
+function updatePinBtn(entry) {
+  pinEntryBtn.textContent = entry.pinned ? "Unpin" : "Pin";
+  pinEntryBtn.classList.toggle("active", !!entry.pinned);
+}
+
+pinEntryBtn.addEventListener("click", () => {
+  const entry = getCurrentEntry();
+  if (!entry) return;
+  entry.pinned = !entry.pinned;
+  save();
+  updatePinBtn(entry);
+  flashSaved();
+});
 
 function getCurrentEntry() {
   const container = findContainer(sectionIdInput.value, subsectionIdInput.value || null);
