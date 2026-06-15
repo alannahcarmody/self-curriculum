@@ -5,7 +5,7 @@ function cid() {
 }
 
 function newContainer(name, desc) {
-  return { id: cid(), name, desc, entries: [], refs: [], notes: "" };
+  return { id: cid(), name, desc, cover: "", entries: [], refs: [], notes: "" };
 }
 
 const DEFAULT_DATA = {
@@ -50,6 +50,7 @@ function normalizeContainer(c) {
   if (!c.refs) c.refs = [];
   if (c.notes === undefined) c.notes = "";
   if (!c.entries) c.entries = [];
+  if (c.cover === undefined) c.cover = "";
 }
 
 function save() {
@@ -69,8 +70,7 @@ const categoryGrid = document.getElementById("categoryGrid");
 const addCategoryBtn = document.getElementById("addCategoryBtn");
 
 const listView = document.getElementById("listView");
-const readView = document.getElementById("readView");
-const editView = document.getElementById("editView");
+const pageView = document.getElementById("pageView");
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -101,8 +101,7 @@ function findContainer(sectionId, subsectionId) {
 
 function showView(view) {
   listView.hidden = view !== "list";
-  readView.hidden = view !== "read";
-  editView.hidden = view !== "edit";
+  pageView.hidden = view !== "page";
 }
 
 function render() {
@@ -111,6 +110,35 @@ function render() {
   showView("list");
 }
 
+// ================= UNDO =================
+const undoToast = document.getElementById("undoToast");
+const undoMessage = document.getElementById("undoMessage");
+const undoBtn = document.getElementById("undoBtn");
+let undoTimer = null;
+let pendingRestore = null;
+
+function offerUndo(message, snapshot) {
+  pendingRestore = snapshot;
+  undoMessage.textContent = message;
+  undoToast.hidden = false;
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => { undoToast.hidden = true; pendingRestore = null; }, 8000);
+}
+
+undoBtn.addEventListener("click", () => {
+  if (!pendingRestore) return;
+  data = pendingRestore;
+  save();
+  undoToast.hidden = true;
+  pendingRestore = null;
+  render();
+});
+
+function snapshot() {
+  return structuredClone(data);
+}
+
+// ================= NAV =================
 function renderNav() {
   sectionNav.innerHTML = "";
   for (const sec of data.sections) {
@@ -140,6 +168,14 @@ function renderNav() {
   }
 }
 
+// ================= CONTENT =================
+const coverWrap = document.getElementById("coverWrap");
+const coverImg = document.getElementById("coverImg");
+const addCoverBtn = document.getElementById("addCoverBtn");
+const changeCoverBtn = document.getElementById("changeCoverBtn");
+const removeCoverBtn = document.getElementById("removeCoverBtn");
+const coverFileInput = document.getElementById("coverFileInput");
+
 function renderContent() {
   const sec = getActiveSection();
   const container = getActiveContainer();
@@ -151,8 +187,20 @@ function renderContent() {
     categoryGrid.innerHTML = "";
     breadcrumb.hidden = true;
     addCategoryBtn.hidden = true;
+    coverWrap.hidden = true;
+    addCoverBtn.hidden = true;
     renderRefs(null);
     return;
+  }
+
+  // Cover image
+  if (container.cover) {
+    coverWrap.hidden = false;
+    coverImg.src = container.cover;
+    addCoverBtn.hidden = true;
+  } else {
+    coverWrap.hidden = true;
+    addCoverBtn.hidden = false;
   }
 
   // Breadcrumb
@@ -182,6 +230,7 @@ function renderContent() {
       const card = document.createElement("button");
       card.className = "category-card";
       card.innerHTML = `
+        ${sub.cover ? `<img class="category-card-cover" src="${sub.cover}" alt="">` : ""}
         <h4>${escapeHtml(sub.name)}</h4>
         ${sub.desc ? `<p>${escapeHtml(sub.desc)}</p>` : ""}
         <span class="category-count">${sub.entries.length} page${sub.entries.length === 1 ? "" : "s"}</span>
@@ -226,12 +275,12 @@ function renderEntryCard(entry) {
   const excerpt = excerptText.slice(0, 220);
 
   card.innerHTML = `
-    <h3 class="entry-title">${escapeHtml(entry.title)}</h3>
+    <h3 class="entry-title">${escapeHtml(entry.title) || "Untitled"}</h3>
     <p class="entry-meta">${[dateStr, entry.ref].filter(Boolean).map(escapeHtml).join(" — ")}</p>
     <p class="entry-excerpt">${escapeHtml(excerpt)}${excerptText.length > 220 ? "…" : ""}</p>
     <div>${tagsHtml}</div>
   `;
-  card.addEventListener("click", () => openEntryRead(activeSectionId, activeSubsectionId, entry.id));
+  card.addEventListener("click", () => openPage(activeSectionId, activeSubsectionId, entry.id));
   return card;
 }
 
@@ -241,51 +290,40 @@ function formatDate(iso) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
-// ================= READ VIEW =================
-const viewTitle = document.getElementById("viewTitle");
-const viewMeta = document.getElementById("viewMeta");
-const viewRef = document.getElementById("viewRef");
-const viewBody = document.getElementById("viewBody");
+// ================= COVER IMAGE =================
+let coverTargetIsCategory = false;
 
-let viewingSectionId = null;
-let viewingSubsectionId = null;
-let viewingEntryId = null;
-
-function openEntryRead(sectionId, subsectionId, entryId) {
-  const container = findContainer(sectionId, subsectionId);
-  const entry = container.entries.find(e => e.id === entryId);
-  viewingSectionId = sectionId;
-  viewingSubsectionId = subsectionId;
-  viewingEntryId = entryId;
-
-  viewTitle.textContent = entry.title;
-  const dateStr = entry.date ? formatDate(entry.date) : "";
-  const tags = (entry.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("");
-  viewMeta.innerHTML = [escapeHtml(dateStr), tags].filter(Boolean).join(" &nbsp; ");
-  viewRef.textContent = entry.ref || "";
-  viewRef.style.display = entry.ref ? "block" : "none";
-  viewBody.innerHTML = entry.body || "";
-
-  showView("read");
+function openCoverPicker() {
+  coverFileInput.click();
 }
 
-document.getElementById("backFromReadBtn").addEventListener("click", () => {
-  render();
+addCoverBtn.addEventListener("click", openCoverPicker);
+changeCoverBtn.addEventListener("click", openCoverPicker);
+
+coverFileInput.addEventListener("change", () => {
+  const file = coverFileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const container = getActiveContainer();
+    container.cover = reader.result;
+    save();
+    render();
+  };
+  reader.readAsDataURL(file);
+  coverFileInput.value = "";
 });
 
-document.getElementById("editEntryBtn").addEventListener("click", () => {
-  openEntryEdit(viewingSectionId, viewingSubsectionId, viewingEntryId);
-});
-
-document.getElementById("deleteEntryFromReadBtn").addEventListener("click", () => {
-  const container = findContainer(viewingSectionId, viewingSubsectionId);
-  if (!confirm("Delete this page?")) return;
-  container.entries = container.entries.filter(e => e.id !== viewingEntryId);
+removeCoverBtn.addEventListener("click", () => {
+  const before = snapshot();
+  const container = getActiveContainer();
+  container.cover = "";
   save();
   render();
+  offerUndo("Cover image removed.", before);
 });
 
-// ================= EDIT VIEW =================
+// ================= PAGE VIEW (Notion-style) =================
 const sectionIdInput = document.getElementById("sectionId");
 const subsectionIdInput = document.getElementById("subsectionId");
 const entryIdInput = document.getElementById("entryId");
@@ -295,83 +333,106 @@ const entryTagsInput = document.getElementById("entryTags");
 const entryRefInput = document.getElementById("entryRef");
 const entryBodyEl = document.getElementById("entryBody");
 const imageFileInput = document.getElementById("imageFileInput");
+const saveIndicator = document.getElementById("saveIndicator");
+const deleteEntryBtn = document.getElementById("deleteEntryBtn");
 
-function openEntryEdit(sectionId, subsectionId, entryId) {
+let saveDebounce = null;
+
+function openPage(sectionId, subsectionId, entryId) {
   sectionIdInput.value = sectionId;
   subsectionIdInput.value = subsectionId || "";
-  entryIdInput.value = entryId || "";
+  entryIdInput.value = entryId;
 
-  if (entryId) {
-    const container = findContainer(sectionId, subsectionId);
-    const entry = container.entries.find(e => e.id === entryId);
-    entryTitleInput.value = entry.title;
-    entryDateInput.value = entry.date || "";
-    entryTagsInput.value = (entry.tags || []).join(", ");
-    entryRefInput.value = entry.ref || "";
-    entryBodyEl.innerHTML = entry.body || "";
-  } else {
-    entryTitleInput.value = "";
-    entryDateInput.value = new Date().toISOString().slice(0, 10);
-    entryTagsInput.value = "";
-    entryRefInput.value = "";
-    entryBodyEl.innerHTML = "";
+  const container = findContainer(sectionId, subsectionId);
+  const entry = container.entries.find(e => e.id === entryId);
+
+  entryTitleInput.value = entry.title || "";
+  entryDateInput.value = entry.date || "";
+  entryTagsInput.value = (entry.tags || []).join(", ");
+  entryRefInput.value = entry.ref || "";
+  entryBodyEl.innerHTML = entry.body || "";
+
+  saveIndicator.classList.remove("visible");
+  showView("page");
+  if (!entry.title) {
+    entryTitleInput.focus();
   }
-  showView("edit");
-  entryTitleInput.focus();
 }
+
+function getCurrentEntry() {
+  const container = findContainer(sectionIdInput.value, subsectionIdInput.value || null);
+  if (!container) return null;
+  return container.entries.find(e => e.id === entryIdInput.value);
+}
+
+function persistCurrentEntry() {
+  const entry = getCurrentEntry();
+  if (!entry) return;
+  entry.title = entryTitleInput.value.trim();
+  entry.date = entryDateInput.value;
+  entry.tags = entryTagsInput.value.split(",").map(t => t.trim()).filter(Boolean);
+  entry.ref = entryRefInput.value.trim();
+  entry.body = entryBodyEl.innerHTML;
+  save();
+  flashSaved();
+}
+
+function flashSaved() {
+  saveIndicator.textContent = "Saved";
+  saveIndicator.classList.add("visible");
+  clearTimeout(saveDebounce);
+  saveDebounce = setTimeout(() => saveIndicator.classList.remove("visible"), 1200);
+}
+
+let inputDebounce = null;
+function scheduleSave() {
+  clearTimeout(inputDebounce);
+  inputDebounce = setTimeout(persistCurrentEntry, 500);
+}
+
+[entryTitleInput, entryDateInput, entryTagsInput, entryRefInput].forEach(el => {
+  el.addEventListener("input", scheduleSave);
+});
+entryBodyEl.addEventListener("input", scheduleSave);
 
 document.getElementById("addEntryBtn").addEventListener("click", () => {
   const container = getActiveContainer();
   if (!container) return alert("Create a section first.");
-  openEntryEdit(activeSectionId, activeSubsectionId, null);
-});
-
-document.getElementById("backFromEditBtn").addEventListener("click", () => {
-  if (entryIdInput.value) {
-    openEntryRead(sectionIdInput.value, subsectionIdInput.value || null, entryIdInput.value);
-  } else {
-    render();
-  }
-});
-
-document.getElementById("saveEntryBtn").addEventListener("click", () => {
-  const title = entryTitleInput.value.trim();
-  if (!title) {
-    entryTitleInput.focus();
-    return;
-  }
-  const container = findContainer(sectionIdInput.value, subsectionIdInput.value || null);
-  const entryId = entryIdInput.value;
-
-  const tags = entryTagsInput.value
-    .split(",")
-    .map(t => t.trim())
-    .filter(Boolean);
-
-  const bodyHtml = entryBodyEl.innerHTML;
-
-  let savedEntryId;
-  if (entryId) {
-    const entry = container.entries.find(e => e.id === entryId);
-    entry.title = title;
-    entry.date = entryDateInput.value;
-    entry.tags = tags;
-    entry.ref = entryRefInput.value.trim();
-    entry.body = bodyHtml;
-    savedEntryId = entryId;
-  } else {
-    savedEntryId = cid();
-    container.entries.push({
-      id: savedEntryId,
-      title,
-      date: entryDateInput.value,
-      tags,
-      ref: entryRefInput.value.trim(),
-      body: bodyHtml,
-    });
-  }
+  const entry = {
+    id: cid(),
+    title: "",
+    date: new Date().toISOString().slice(0, 10),
+    tags: [],
+    ref: "",
+    body: "",
+  };
+  container.entries.push(entry);
   save();
-  openEntryRead(sectionIdInput.value, subsectionIdInput.value || null, savedEntryId);
+  openPage(activeSectionId, activeSubsectionId, entry.id);
+});
+
+document.getElementById("backFromPageBtn").addEventListener("click", () => {
+  clearTimeout(inputDebounce);
+  persistCurrentEntry();
+
+  // Remove untouched blank pages so navigating away doesn't litter empty entries
+  const entry = getCurrentEntry();
+  const container = findContainer(sectionIdInput.value, subsectionIdInput.value || null);
+  if (entry && !entry.title && !entry.body.trim() && entry.tags.length === 0 && !entry.ref) {
+    container.entries = container.entries.filter(e => e.id !== entry.id);
+    save();
+  }
+  render();
+});
+
+deleteEntryBtn.addEventListener("click", () => {
+  if (!confirm("Delete this page?")) return;
+  const before = snapshot();
+  const container = findContainer(sectionIdInput.value, subsectionIdInput.value || null);
+  container.entries = container.entries.filter(e => e.id !== entryIdInput.value);
+  save();
+  render();
+  offerUndo("Page deleted.", before);
 });
 
 // Image insertion
@@ -386,6 +447,7 @@ imageFileInput.addEventListener("change", () => {
   reader.onload = () => {
     entryBodyEl.focus();
     document.execCommand("insertImage", false, reader.result);
+    scheduleSave();
   };
   reader.readAsDataURL(file);
   imageFileInput.value = "";
@@ -395,6 +457,8 @@ imageFileInput.addEventListener("change", () => {
 const refItems = document.getElementById("refItems");
 const refCount = document.getElementById("refCount");
 const refNotesEl = document.getElementById("refNotes");
+const notesDisplay = document.getElementById("notesDisplay");
+const notesIndicator = document.getElementById("notesIndicator");
 
 const TYPE_LABELS = {
   book: "Book",
@@ -405,9 +469,25 @@ const TYPE_LABELS = {
 };
 
 function renderRefs(container) {
-  refNotesEl.value = container ? (container.notes || "") : "";
-  refNotesEl.disabled = !container;
+  // Notes / Plan & Skills — bullet display, click to edit
+  if (!container) {
+    notesDisplay.innerHTML = `<div class="ref-empty">Nothing yet.</div>`;
+    notesIndicator.textContent = "";
+    refNotesEl.value = "";
+    refNotesEl.hidden = true;
+    notesDisplay.hidden = false;
+  } else {
+    const lines = (container.notes || "").split("\n").map(l => l.trim()).filter(Boolean);
+    notesIndicator.textContent = lines.length ? `(${lines.length})` : "";
+    if (lines.length) {
+      notesDisplay.innerHTML = `<ul>${lines.map(l => `<li>${escapeHtml(l.replace(/^[-*]\s*/, ""))}</li>`).join("")}</ul>`;
+    } else {
+      notesDisplay.innerHTML = `<div class="ref-empty">Click to add focus areas, skills, and plans for this ${activeSubsectionId ? "category" : "section"}.</div>`;
+    }
+    refNotesEl.value = container.notes || "";
+  }
 
+  // Linked references
   refItems.innerHTML = "";
   if (!container || container.refs.length === 0) {
     refCount.textContent = "";
@@ -421,25 +501,63 @@ function renderRefs(container) {
   for (const ref of container.refs) {
     const row = document.createElement("div");
     row.className = "ref-item";
-    row.innerHTML = `
+
+    const main = document.createElement("div");
+    main.className = "ref-item-main";
+    main.innerHTML = `
       <span class="ref-type">${escapeHtml(TYPE_LABELS[ref.type] || "Other")}</span>
       <span class="ref-title">${escapeHtml(ref.title)}</span>
       ${ref.note ? `<span class="ref-note">${escapeHtml(ref.note)}</span>` : ""}
     `;
-    row.addEventListener("click", () => {
-      if (ref.link) {
-        window.open(ref.link, "_blank", "noopener");
-      } else {
-        openRefDialog(ref.id);
-      }
-    });
-    row.addEventListener("dblclick", (e) => {
+    if (ref.link) {
+      main.addEventListener("click", () => window.open(ref.link, "_blank", "noopener"));
+    }
+    row.appendChild(main);
+
+    const actions = document.createElement("div");
+    actions.className = "ref-item-actions";
+    const editBtn = document.createElement("button");
+    editBtn.className = "ref-icon-btn";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", (e) => { e.stopPropagation(); openRefDialog(ref.id); });
+    const delBtn = document.createElement("button");
+    delBtn.className = "ref-icon-btn";
+    delBtn.textContent = "Remove";
+    delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      openRefDialog(ref.id);
+      const before = snapshot();
+      container.refs = container.refs.filter(r => r.id !== ref.id);
+      save();
+      render();
+      document.getElementById("readingList").open = true;
+      offerUndo("Reference removed.", before);
     });
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(actions);
+
     refItems.appendChild(row);
   }
 }
+
+// Notes click-to-edit
+notesDisplay.addEventListener("click", () => {
+  const container = getActiveContainer();
+  if (!container) return;
+  notesDisplay.hidden = true;
+  refNotesEl.hidden = false;
+  refNotesEl.focus();
+});
+
+refNotesEl.addEventListener("blur", () => {
+  const container = getActiveContainer();
+  if (!container) return;
+  container.notes = refNotesEl.value;
+  save();
+  refNotesEl.hidden = true;
+  notesDisplay.hidden = false;
+  renderRefs(container);
+});
 
 const refDialog = document.getElementById("refDialog");
 const refForm = document.getElementById("refForm");
@@ -475,13 +593,6 @@ function openRefDialog(refId) {
   refTitleInput.focus();
 }
 
-refNotesEl.addEventListener("blur", () => {
-  const container = getActiveContainer();
-  if (!container) return;
-  container.notes = refNotesEl.value;
-  save();
-});
-
 document.getElementById("addRefBtn").addEventListener("click", () => {
   const container = getActiveContainer();
   if (!container) return;
@@ -513,12 +624,14 @@ refForm.addEventListener("submit", (e) => {
 });
 
 deleteRefBtn.addEventListener("click", () => {
+  const before = snapshot();
   const container = getActiveContainer();
   container.refs = container.refs.filter(r => r.id !== refIdInput.value);
   save();
   render();
   document.getElementById("readingList").open = true;
   refDialog.close();
+  offerUndo("Reference removed.", before);
 });
 
 // ================= SECTIONS (top level) =================
@@ -603,11 +716,13 @@ deleteCategoryBtn.addEventListener("click", () => {
   const editId = categoryEditIdInput.value;
   const sub = sec.subsections.find(c => c.id === editId);
   if (!confirm(`Delete category "${sub.name}" and all its pages?`)) return;
+  const before = snapshot();
   sec.subsections = sec.subsections.filter(c => c.id !== editId);
   if (activeSubsectionId === editId) activeSubsectionId = null;
   save();
   render();
   categoryDialog.close();
+  offerUndo(`Category "${sub.name}" deleted.`, before);
 });
 
 // ================= RENAME / DELETE (current container) =================
@@ -639,19 +754,23 @@ document.getElementById("deleteSectionBtn").addEventListener("click", () => {
     const sec = getActiveSection();
     const sub = sec.subsections.find(c => c.id === activeSubsectionId);
     if (!confirm(`Delete category "${sub.name}" and all its pages?`)) return;
+    const before = snapshot();
     sec.subsections = sec.subsections.filter(c => c.id !== activeSubsectionId);
     activeSubsectionId = null;
     save();
     render();
+    offerUndo(`Category "${sub.name}" deleted.`, before);
   } else {
     const sec = getActiveSection();
     if (!sec) return;
     if (!confirm(`Delete section "${sec.name}", all its categories, and all its pages?`)) return;
+    const before = snapshot();
     data.sections = data.sections.filter(s => s.id !== sec.id);
     activeSectionId = data.sections[0]?.id || null;
     activeSubsectionId = null;
     save();
     render();
+    offerUndo(`Section "${sec.name}" deleted.`, before);
   }
 });
 

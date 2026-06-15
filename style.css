@@ -67,7 +67,7 @@ body {
   background: none;
   border: none;
   color: var(--sidebar-text);
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.95rem;
   padding: 0.55rem 0.7rem;
   border-radius: 4px;
@@ -89,7 +89,7 @@ body {
   background: none;
   border: none;
   color: var(--sidebar-muted);
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   padding: 0.4rem 0.7rem 0.4rem 1.6rem;
   border-radius: 4px;
@@ -107,7 +107,7 @@ body {
   background: none;
   border: 1px solid var(--rule);
   color: var(--ink-soft);
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
@@ -146,8 +146,10 @@ body {
 }
 
 .content-header h2 {
-  font-size: 2.1rem;
-  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -170,7 +172,7 @@ body {
   border: none;
   border-radius: 4px;
   padding: 0.45rem 1rem;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -200,7 +202,7 @@ body {
 }
 
 .entry-meta {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.8rem;
   color: var(--ink-soft);
   letter-spacing: 0.03em;
@@ -216,7 +218,7 @@ body {
 
 .tag {
   display: inline-block;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -251,7 +253,7 @@ dialog::backdrop { background: rgba(43,38,34,0.45); }
 dialog h2 { margin-top: 0; font-weight: 600; }
 
 dialog form { display: flex; flex-direction: column; gap: 0.85rem; }
-dialog label { display: flex; flex-direction: column; gap: 0.3rem; font-family: "Source Sans Pro", sans-serif; font-size: 0.85rem; color: var(--ink-soft); }
+dialog label { display: flex; flex-direction: column; gap: 0.3rem; font-family: "Inter", sans-serif; font-size: 0.85rem; color: var(--ink-soft); }
 .hint { font-style: italic; font-size: 0.78rem; }
 
 dialog input, dialog textarea {
@@ -267,7 +269,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
 
 .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
 .dialog-actions button {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   border: 1px solid var(--rule);
   background: var(--paper-alt);
   color: var(--ink);
@@ -314,7 +316,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
 .entry-body h1, .entry-body h2, .entry-body h3 { font-weight: 600; }
 
 .breadcrumb {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.85rem;
   color: var(--ink-soft);
   margin: 0 0 0.5rem;
@@ -343,6 +345,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
 }
 .category-card:hover { border-color: var(--accent-soft); }
 .category-card h4 {
+  font-family: "Inter", sans-serif;
   margin: 0 0 0.25rem;
   font-size: 1.05rem;
   font-weight: 600;
@@ -354,7 +357,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
   font-style: italic;
 }
 .category-card .category-count {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.72rem;
   color: var(--accent);
   text-transform: uppercase;
@@ -372,7 +375,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
   margin-bottom: 1.75rem;
 }
 .reading-list summary {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -386,7 +389,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
 .ref-block { margin-top: 1rem; }
 .ref-block:first-of-type { margin-top: 0.75rem; }
 .ref-block h4 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -429,7 +432,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
 }
 .ref-item:hover { border-color: var(--rule); background: var(--paper); }
 .ref-type {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -465,7 +468,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
   border: none;
   border-radius: 4px;
   padding: 0.45rem 1.1rem;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -503,7 +506,7 @@ dialog textarea { resize: vertical; line-height: 1.5; }
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 0.8rem;
   color: var(--ink-soft);
 }
@@ -532,9 +535,154 @@ dialog textarea { resize: vertical; line-height: 1.5; }
   font-style: italic;
 }
 
+/* Cover image */
+.cover-wrap {
+  position: relative;
+  margin: -2.5rem -3rem 1.5rem;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 0 0 8px 8px;
+  background: var(--paper-alt);
+}
+.cover-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cover-edit-btn {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  background: rgba(43,38,34,0.6);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.cover-wrap:hover .cover-edit-btn { opacity: 1; }
+.cover-remove-btn { right: 6.5rem; }
+
+.category-card {
+  position: relative;
+  overflow: hidden;
+}
+.category-card-cover {
+  display: block;
+  width: 100%;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.6rem;
+}
+
+/* Notes / Plan & Skills as bullet checklist */
+.notes-display {
+  font-family: "Inter", sans-serif;
+  font-size: 0.95rem;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  cursor: text;
+  margin: 0;
+}
+.notes-display:hover { border-color: var(--rule); }
+.notes-display ul {
+  margin: 0;
+  padding-left: 1.3rem;
+}
+.notes-display li {
+  margin: 0.25rem 0;
+  color: var(--ink);
+}
+.notes-display .ref-empty { padding: 0.2rem 0; }
+
+/* Reference hover-edit */
+.ref-item {
+  position: relative;
+  cursor: default;
+}
+.ref-item-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex: 1;
+  cursor: pointer;
+}
+.ref-item-actions {
+  display: flex;
+  gap: 0.3rem;
+  opacity: 0;
+  transition: opacity 0.1s;
+  flex-shrink: 0;
+}
+.ref-item:hover .ref-item-actions { opacity: 1; }
+.ref-icon-btn {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  padding: 0.1rem 0.45rem;
+  cursor: pointer;
+}
+.ref-icon-btn:hover { border-color: var(--accent-soft); color: var(--accent); }
+
+/* Toggle groups */
+.toggles { display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.75rem; }
+.toggles .reading-list { margin-bottom: 0; }
+
+/* Save indicator + undo toast */
+.save-indicator {
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.save-indicator.visible { opacity: 1; }
+
+.undo-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  padding: 0.6rem 0.75rem 0.6rem 1.1rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+.undo-toast button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0.8rem;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.undo-toast button:hover { background: var(--accent-soft); }
+
 @media (max-width: 720px) {
   .layout { flex-direction: column; }
   .sidebar { width: 100%; }
   .content { padding: 1.5rem; max-width: 100%; }
   .meta-fields { flex-direction: column; }
+  .cover-wrap { margin: -1.5rem -1.5rem 1.5rem; }
 }

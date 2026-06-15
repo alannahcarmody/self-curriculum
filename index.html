@@ -6,7 +6,7 @@
 <title>Commonplace</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,6 +24,12 @@
 
     <!-- LIST VIEW -->
     <div id="listView">
+      <div class="cover-wrap" id="coverWrap" hidden>
+        <img id="coverImg" alt="">
+        <button id="changeCoverBtn" class="cover-edit-btn">Change cover</button>
+        <button id="removeCoverBtn" class="cover-edit-btn cover-remove-btn">Remove</button>
+      </div>
+
       <p id="breadcrumb" class="breadcrumb" hidden></p>
 
       <header class="content-header">
@@ -32,6 +38,7 @@
           <p id="sectionDesc" class="section-desc"></p>
         </div>
         <div class="header-actions">
+          <button id="addCoverBtn" class="ghost-btn">+ Cover image</button>
           <button id="addCategoryBtn" class="ghost-btn">+ New Category</button>
           <button id="renameSectionBtn" class="ghost-btn">Rename</button>
           <button id="deleteSectionBtn" class="ghost-btn danger">Delete</button>
@@ -41,64 +48,56 @@
 
       <div id="categoryGrid" class="category-grid"></div>
 
-      <details class="reading-list" id="readingList">
-        <summary>Reading List &amp; References <span id="refCount" class="ref-count"></span></summary>
+      <div class="toggles">
+        <details class="reading-list" id="notesPanel">
+          <summary>Plan &amp; Skills <span id="notesIndicator" class="ref-count"></span></summary>
+          <p class="ref-block-hint">What guides the work in this section — focus areas, skills to build, things to revisit. One per line.</p>
+          <div id="notesDisplay" class="notes-display"></div>
+          <textarea id="refNotes" class="ref-notes" rows="4" placeholder="- Build intuition for...&#10;- Revisit...&#10;- Get comfortable with..." hidden></textarea>
+        </details>
 
-        <div class="ref-block">
-          <h4>Notes</h4>
-          <p class="ref-block-hint">Quick bullets — one per line. Things to look into, ideas, reminders.</p>
-          <textarea id="refNotes" class="ref-notes" rows="4" placeholder="- Look into...&#10;- Compare X and Y&#10;- Revisit chapter 3"></textarea>
-        </div>
-
-        <div class="ref-block">
-          <h4>Linked References</h4>
-          <p class="ref-block-hint">Specific books, articles, and papers with links.</p>
+        <details class="reading-list" id="readingList">
+          <summary>Linked References <span id="refCount" class="ref-count"></span></summary>
+          <p class="ref-block-hint">Specific books, articles, and papers — hover an item to edit or remove it.</p>
           <div id="refItems" class="ref-items"></div>
           <button id="addRefBtn" class="ghost-btn">+ Add Reference</button>
-        </div>
-      </details>
+        </details>
+      </div>
 
       <div id="entryList" class="entry-list"></div>
     </div>
 
-    <!-- READ VIEW -->
-    <article id="readView" class="page-view" hidden>
+    <!-- PAGE VIEW (Notion-style: click in, write directly) -->
+    <div id="pageView" class="page-view" hidden>
       <div class="page-toolbar">
-        <button id="backFromReadBtn" class="ghost-btn">&larr; Back</button>
+        <button id="backFromPageBtn" class="ghost-btn">&larr; Back</button>
         <div class="page-toolbar-actions">
-          <button id="editEntryBtn" class="ghost-btn">Edit</button>
-          <button id="deleteEntryFromReadBtn" class="ghost-btn danger">Delete</button>
-        </div>
-      </div>
-      <h1 id="viewTitle" class="page-title"></h1>
-      <p class="entry-meta" id="viewMeta"></p>
-      <p id="viewRef" class="entry-ref"></p>
-      <div id="viewBody" class="entry-body"></div>
-    </article>
-
-    <!-- EDIT VIEW -->
-    <div id="editView" class="page-view" hidden>
-      <div class="page-toolbar">
-        <button id="backFromEditBtn" class="ghost-btn">&larr; Cancel</button>
-        <div class="page-toolbar-actions">
+          <span id="saveIndicator" class="save-indicator"></span>
           <button id="insertImageBtn" class="ghost-btn">Insert Image</button>
-          <button id="saveEntryBtn">Save</button>
+          <button id="deleteEntryBtn" class="ghost-btn danger">Delete</button>
         </div>
       </div>
       <input type="hidden" id="sectionId">
       <input type="hidden" id="subsectionId">
       <input type="hidden" id="entryId">
-      <input type="text" id="entryTitle" class="title-input" placeholder="Entry title" required>
+      <input type="text" id="entryTitle" class="title-input" placeholder="Untitled">
       <div class="meta-fields">
         <label>Date<input type="date" id="entryDate"></label>
         <label>Tags <span class="hint">(comma separated)</span><input type="text" id="entryTags" placeholder="e.g. Stoicism, Roman history"></label>
         <label>Source / Reference <span class="hint">(book, article, link...)</span><input type="text" id="entryRef"></label>
       </div>
-      <div id="entryBody" class="entry-body editable" contenteditable="true" data-placeholder="Write your notes and analysis here..."></div>
-      <input type="file" id="imageFileInput" accept="image/*" hidden>
+      <div id="entryBody" class="entry-body editable" contenteditable="true" data-placeholder="Write here..."></div>
     </div>
 
   </main>
+</div>
+
+<input type="file" id="imageFileInput" accept="image/*" hidden>
+<input type="file" id="coverFileInput" accept="image/*" hidden>
+
+<div id="undoToast" class="undo-toast" hidden>
+  <span id="undoMessage"></span>
+  <button id="undoBtn">Undo</button>
 </div>
 
 <dialog id="sectionDialog">
