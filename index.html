@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Curriculum</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>My Self-Curriculum</h1>
+  <button id="addCategoryBtn">+ New Category</button>
+</header>
+
+<main id="board"></main>
+
+<dialog id="itemDialog">
+  <form id="itemForm">
+    <h2 id="dialogTitle">Add Item</h2>
+    <input type="hidden" id="categoryId">
+    <input type="hidden" id="itemId">
+    <label>Title<input type="text" id="itemTitle" required></label>
+    <label>Notes / Link<textarea id="itemNotes"></textarea></label>
+    <label>Status
+      <select id="itemStatus">
+        <option value="todo">To Do</option>
+        <option value="active">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+    </label>
+    <div class="dialog-actions">
+      <button type="button" id="deleteItemBtn">Delete</button>
+      <button type="button" id="cancelItemBtn">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="categoryDialog">
+  <form id="categoryForm">
+    <h2>New Category</h2>
+    <label>Name<input type="text" id="categoryName" required></label>
+    <div class="dialog-actions">
+      <button type="button" id="cancelCategoryBtn">Cancel</button>
+      <button type="submit">Add</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
