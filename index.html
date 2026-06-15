@@ -24,17 +24,22 @@
 
     <!-- LIST VIEW -->
     <div id="listView">
+      <p id="breadcrumb" class="breadcrumb" hidden></p>
+
       <header class="content-header">
         <div>
           <h2 id="sectionTitle"></h2>
           <p id="sectionDesc" class="section-desc"></p>
         </div>
         <div class="header-actions">
+          <button id="addCategoryBtn" class="ghost-btn">+ New Category</button>
           <button id="renameSectionBtn" class="ghost-btn">Rename</button>
-          <button id="deleteSectionBtn" class="ghost-btn danger">Delete Section</button>
+          <button id="deleteSectionBtn" class="ghost-btn danger">Delete</button>
           <button id="addEntryBtn">+ New Page</button>
         </div>
       </header>
+
+      <div id="categoryGrid" class="category-grid"></div>
 
       <details class="reading-list" id="readingList">
         <summary>Reading List &amp; References <span id="refCount" class="ref-count"></span></summary>
@@ -81,6 +86,7 @@
         </div>
       </div>
       <input type="hidden" id="sectionId">
+      <input type="hidden" id="subsectionId">
       <input type="hidden" id="entryId">
       <input type="text" id="entryTitle" class="title-input" placeholder="Entry title" required>
       <div class="meta-fields">
@@ -103,6 +109,20 @@
     <label>Description <span class="hint">(optional)</span><input type="text" id="sectionDescInput" placeholder="What lives in this section?"></label>
     <div class="dialog-actions">
       <button type="button" id="cancelSectionBtn">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="categoryDialog">
+  <form id="categoryForm">
+    <h2 id="categoryDialogTitle">New Category</h2>
+    <input type="hidden" id="categoryEditId">
+    <label>Name<input type="text" id="categoryName" required placeholder="e.g. Thermodynamics"></label>
+    <label>Description <span class="hint">(optional)</span><input type="text" id="categoryDescInput" placeholder="What lives in this category?"></label>
+    <div class="dialog-actions">
+      <button type="button" id="deleteCategoryBtn">Delete</button>
+      <button type="button" id="cancelCategoryBtn">Cancel</button>
       <button type="submit">Save</button>
     </div>
   </form>

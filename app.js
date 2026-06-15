@@ -4,14 +4,28 @@ function cid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+function newContainer(name, desc) {
+  return { id: cid(), name, desc, entries: [], refs: [], notes: "" };
+}
+
 const DEFAULT_DATA = {
   sections: [
-    { id: cid(), name: "Articles & Notes", desc: "Articles read, with notes and analysis.", entries: [], refs: [], notes: "" },
-    { id: cid(), name: "Books & Analysis", desc: "Books read, with reflections and arguments.", entries: [], refs: [], notes: "" },
-    { id: cid(), name: "History & Politics", desc: "Historical readings, DBQ-style analysis, and political thought.", entries: [], refs: [], notes: "" },
-    { id: cid(), name: "Writing", desc: "Notes on craft, and takeaways from writing practice.", entries: [], refs: [], notes: "" },
-    { id: cid(), name: "Engineering Research", desc: "Research notes, designs, and technical explorations.", entries: [], refs: [], notes: "" },
-    { id: cid(), name: "Past Projects", desc: "A record of completed projects.", entries: [], refs: [], notes: "" },
+    Object.assign(newContainer("Articles & Notes", "Articles read, with notes and analysis."), { subsections: [] }),
+    Object.assign(newContainer("Books & Analysis", "Books read, with reflections and arguments."), { subsections: [] }),
+    Object.assign(newContainer("History & Politics", "Historical readings, DBQ-style analysis, and political thought."), { subsections: [
+      newContainer("IB History Review", "Revisiting IB History content, essays, and source analysis technique."),
+    ] }),
+    Object.assign(newContainer("Writing", "Notes on craft, and takeaways from writing practice."), { subsections: [
+      newContainer("IB Lang & Lit Techniques", "Literary devices, rhetorical analysis, and commentary technique from IB."),
+    ] }),
+    Object.assign(newContainer("Engineering Research", "Research notes, designs, and technical explorations."), { subsections: [
+      newContainer("Thermodynamics", ""),
+      newContainer("Controls", ""),
+      newContainer("Heat Transfer", ""),
+      newContainer("Fluids", ""),
+      newContainer("How Things Are Made", "Reverse-engineering and manufacturing notes, drawing on UCLA coursework."),
+    ] }),
+    Object.assign(newContainer("Past Projects", "A record of completed projects."), { subsections: [] }),
   ]
 };
 
@@ -22,13 +36,20 @@ function load() {
     const parsed = JSON.parse(raw);
     if (!parsed.sections) return structuredClone(DEFAULT_DATA);
     for (const sec of parsed.sections) {
-      if (!sec.refs) sec.refs = [];
-      if (sec.notes === undefined) sec.notes = "";
+      normalizeContainer(sec);
+      if (!sec.subsections) sec.subsections = [];
+      for (const sub of sec.subsections) normalizeContainer(sub);
     }
     return parsed;
   } catch {
     return structuredClone(DEFAULT_DATA);
   }
+}
+
+function normalizeContainer(c) {
+  if (!c.refs) c.refs = [];
+  if (c.notes === undefined) c.notes = "";
+  if (!c.entries) c.entries = [];
 }
 
 function save() {
@@ -37,11 +58,15 @@ function save() {
 
 let data = load();
 let activeSectionId = data.sections[0]?.id || null;
+let activeSubsectionId = null;
 
 const sectionNav = document.getElementById("sectionNav");
 const sectionTitle = document.getElementById("sectionTitle");
 const sectionDesc = document.getElementById("sectionDesc");
 const entryList = document.getElementById("entryList");
+const breadcrumb = document.getElementById("breadcrumb");
+const categoryGrid = document.getElementById("categoryGrid");
+const addCategoryBtn = document.getElementById("addCategoryBtn");
 
 const listView = document.getElementById("listView");
 const readView = document.getElementById("readView");
@@ -55,6 +80,23 @@ function escapeHtml(str) {
 
 function getActiveSection() {
   return data.sections.find(s => s.id === activeSectionId) || data.sections[0];
+}
+
+// The "container" is whichever level is currently open: a top-level section,
+// or a category (subsection) within it.
+function getActiveContainer() {
+  const sec = getActiveSection();
+  if (!sec) return null;
+  if (activeSubsectionId) {
+    return sec.subsections.find(c => c.id === activeSubsectionId) || sec;
+  }
+  return sec;
+}
+
+function findContainer(sectionId, subsectionId) {
+  const sec = data.sections.find(s => s.id === sectionId);
+  if (!sec) return null;
+  return subsectionId ? sec.subsections.find(c => c.id === subsectionId) : sec;
 }
 
 function showView(view) {
@@ -73,46 +115,105 @@ function renderNav() {
   sectionNav.innerHTML = "";
   for (const sec of data.sections) {
     const btn = document.createElement("button");
-    btn.className = "nav-item" + (sec.id === activeSectionId ? " active" : "");
+    btn.className = "nav-item" + (sec.id === activeSectionId && !activeSubsectionId ? " active" : "");
     btn.textContent = sec.name;
     btn.addEventListener("click", () => {
       activeSectionId = sec.id;
+      activeSubsectionId = null;
       render();
     });
     sectionNav.appendChild(btn);
+
+    if (sec.id === activeSectionId) {
+      for (const sub of sec.subsections) {
+        const subBtn = document.createElement("button");
+        subBtn.className = "nav-subitem" + (sub.id === activeSubsectionId ? " active" : "");
+        subBtn.textContent = sub.name;
+        subBtn.addEventListener("click", () => {
+          activeSectionId = sec.id;
+          activeSubsectionId = sub.id;
+          render();
+        });
+        sectionNav.appendChild(subBtn);
+      }
+    }
   }
 }
 
 function renderContent() {
   const sec = getActiveSection();
-  if (!sec) {
+  const container = getActiveContainer();
+
+  if (!container) {
     sectionTitle.textContent = "No sections yet";
     sectionDesc.textContent = "";
     entryList.innerHTML = "";
+    categoryGrid.innerHTML = "";
+    breadcrumb.hidden = true;
+    addCategoryBtn.hidden = true;
     renderRefs(null);
     return;
   }
-  sectionTitle.textContent = sec.name;
-  sectionDesc.textContent = sec.desc || "";
 
-  renderRefs(sec);
+  // Breadcrumb
+  if (activeSubsectionId) {
+    breadcrumb.hidden = false;
+    breadcrumb.innerHTML = "";
+    const link = document.createElement("a");
+    link.textContent = sec.name;
+    link.addEventListener("click", () => {
+      activeSubsectionId = null;
+      render();
+    });
+    breadcrumb.appendChild(link);
+    breadcrumb.appendChild(document.createTextNode(" / " + container.name));
+  } else {
+    breadcrumb.hidden = true;
+  }
+
+  sectionTitle.textContent = container.name;
+  sectionDesc.textContent = container.desc || "";
+
+  // Category grid (only at section root)
+  addCategoryBtn.hidden = !!activeSubsectionId;
+  categoryGrid.innerHTML = "";
+  if (!activeSubsectionId) {
+    for (const sub of sec.subsections) {
+      const card = document.createElement("button");
+      card.className = "category-card";
+      card.innerHTML = `
+        <h4>${escapeHtml(sub.name)}</h4>
+        ${sub.desc ? `<p>${escapeHtml(sub.desc)}</p>` : ""}
+        <span class="category-count">${sub.entries.length} page${sub.entries.length === 1 ? "" : "s"}</span>
+      `;
+      card.addEventListener("click", () => {
+        activeSubsectionId = sub.id;
+        render();
+      });
+      categoryGrid.appendChild(card);
+    }
+  }
+
+  renderRefs(container);
 
   entryList.innerHTML = "";
-  if (sec.entries.length === 0) {
+  if (container.entries.length === 0) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Nothing here yet. Add your first entry.";
+    empty.textContent = activeSubsectionId
+      ? "Nothing here yet. Add your first page."
+      : "Nothing here yet. Add a page, or break this section into categories above.";
     entryList.appendChild(empty);
     return;
   }
 
-  const sorted = [...sec.entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const sorted = [...container.entries].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   for (const entry of sorted) {
-    entryList.appendChild(renderEntryCard(sec, entry));
+    entryList.appendChild(renderEntryCard(entry));
   }
 }
 
-function renderEntryCard(sec, entry) {
+function renderEntryCard(entry) {
   const card = document.createElement("article");
   card.className = "entry-card";
 
@@ -130,7 +231,7 @@ function renderEntryCard(sec, entry) {
     <p class="entry-excerpt">${escapeHtml(excerpt)}${excerptText.length > 220 ? "…" : ""}</p>
     <div>${tagsHtml}</div>
   `;
-  card.addEventListener("click", () => openEntryRead(sec.id, entry.id));
+  card.addEventListener("click", () => openEntryRead(activeSectionId, activeSubsectionId, entry.id));
   return card;
 }
 
@@ -147,12 +248,14 @@ const viewRef = document.getElementById("viewRef");
 const viewBody = document.getElementById("viewBody");
 
 let viewingSectionId = null;
+let viewingSubsectionId = null;
 let viewingEntryId = null;
 
-function openEntryRead(sectionId, entryId) {
-  const sec = data.sections.find(s => s.id === sectionId);
-  const entry = sec.entries.find(e => e.id === entryId);
+function openEntryRead(sectionId, subsectionId, entryId) {
+  const container = findContainer(sectionId, subsectionId);
+  const entry = container.entries.find(e => e.id === entryId);
   viewingSectionId = sectionId;
+  viewingSubsectionId = subsectionId;
   viewingEntryId = entryId;
 
   viewTitle.textContent = entry.title;
@@ -171,19 +274,20 @@ document.getElementById("backFromReadBtn").addEventListener("click", () => {
 });
 
 document.getElementById("editEntryBtn").addEventListener("click", () => {
-  openEntryEdit(viewingSectionId, viewingEntryId);
+  openEntryEdit(viewingSectionId, viewingSubsectionId, viewingEntryId);
 });
 
 document.getElementById("deleteEntryFromReadBtn").addEventListener("click", () => {
-  const sec = data.sections.find(s => s.id === viewingSectionId);
-  if (!confirm("Delete this entry?")) return;
-  sec.entries = sec.entries.filter(e => e.id !== viewingEntryId);
+  const container = findContainer(viewingSectionId, viewingSubsectionId);
+  if (!confirm("Delete this page?")) return;
+  container.entries = container.entries.filter(e => e.id !== viewingEntryId);
   save();
   render();
 });
 
 // ================= EDIT VIEW =================
 const sectionIdInput = document.getElementById("sectionId");
+const subsectionIdInput = document.getElementById("subsectionId");
 const entryIdInput = document.getElementById("entryId");
 const entryTitleInput = document.getElementById("entryTitle");
 const entryDateInput = document.getElementById("entryDate");
@@ -192,13 +296,14 @@ const entryRefInput = document.getElementById("entryRef");
 const entryBodyEl = document.getElementById("entryBody");
 const imageFileInput = document.getElementById("imageFileInput");
 
-function openEntryEdit(sectionId, entryId) {
+function openEntryEdit(sectionId, subsectionId, entryId) {
   sectionIdInput.value = sectionId;
+  subsectionIdInput.value = subsectionId || "";
   entryIdInput.value = entryId || "";
 
   if (entryId) {
-    const sec = data.sections.find(s => s.id === sectionId);
-    const entry = sec.entries.find(e => e.id === entryId);
+    const container = findContainer(sectionId, subsectionId);
+    const entry = container.entries.find(e => e.id === entryId);
     entryTitleInput.value = entry.title;
     entryDateInput.value = entry.date || "";
     entryTagsInput.value = (entry.tags || []).join(", ");
@@ -216,14 +321,14 @@ function openEntryEdit(sectionId, entryId) {
 }
 
 document.getElementById("addEntryBtn").addEventListener("click", () => {
-  const sec = getActiveSection();
-  if (!sec) return alert("Create a section first.");
-  openEntryEdit(sec.id, null);
+  const container = getActiveContainer();
+  if (!container) return alert("Create a section first.");
+  openEntryEdit(activeSectionId, activeSubsectionId, null);
 });
 
 document.getElementById("backFromEditBtn").addEventListener("click", () => {
   if (entryIdInput.value) {
-    openEntryRead(sectionIdInput.value, entryIdInput.value);
+    openEntryRead(sectionIdInput.value, subsectionIdInput.value || null, entryIdInput.value);
   } else {
     render();
   }
@@ -235,7 +340,7 @@ document.getElementById("saveEntryBtn").addEventListener("click", () => {
     entryTitleInput.focus();
     return;
   }
-  const sec = data.sections.find(s => s.id === sectionIdInput.value);
+  const container = findContainer(sectionIdInput.value, subsectionIdInput.value || null);
   const entryId = entryIdInput.value;
 
   const tags = entryTagsInput.value
@@ -247,7 +352,7 @@ document.getElementById("saveEntryBtn").addEventListener("click", () => {
 
   let savedEntryId;
   if (entryId) {
-    const entry = sec.entries.find(e => e.id === entryId);
+    const entry = container.entries.find(e => e.id === entryId);
     entry.title = title;
     entry.date = entryDateInput.value;
     entry.tags = tags;
@@ -256,7 +361,7 @@ document.getElementById("saveEntryBtn").addEventListener("click", () => {
     savedEntryId = entryId;
   } else {
     savedEntryId = cid();
-    sec.entries.push({
+    container.entries.push({
       id: savedEntryId,
       title,
       date: entryDateInput.value,
@@ -266,10 +371,8 @@ document.getElementById("saveEntryBtn").addEventListener("click", () => {
     });
   }
   save();
-  openEntryRead(sec.id, savedEntryId);
-}
-
-);
+  openEntryRead(sectionIdInput.value, subsectionIdInput.value || null, savedEntryId);
+});
 
 // Image insertion
 document.getElementById("insertImageBtn").addEventListener("click", () => {
@@ -291,6 +394,7 @@ imageFileInput.addEventListener("change", () => {
 // ================= REFERENCES / READING LIST =================
 const refItems = document.getElementById("refItems");
 const refCount = document.getElementById("refCount");
+const refNotesEl = document.getElementById("refNotes");
 
 const TYPE_LABELS = {
   book: "Book",
@@ -300,14 +404,12 @@ const TYPE_LABELS = {
   other: "Other",
 };
 
-const refNotesEl = document.getElementById("refNotes");
-
-function renderRefs(sec) {
-  refNotesEl.value = sec ? (sec.notes || "") : "";
-  refNotesEl.disabled = !sec;
+function renderRefs(container) {
+  refNotesEl.value = container ? (container.notes || "") : "";
+  refNotesEl.disabled = !container;
 
   refItems.innerHTML = "";
-  if (!sec || sec.refs.length === 0) {
+  if (!container || container.refs.length === 0) {
     refCount.textContent = "";
     const empty = document.createElement("div");
     empty.className = "ref-empty";
@@ -315,8 +417,8 @@ function renderRefs(sec) {
     refItems.appendChild(empty);
     return;
   }
-  refCount.textContent = `(${sec.refs.length})`;
-  for (const ref of sec.refs) {
+  refCount.textContent = `(${container.refs.length})`;
+  for (const ref of container.refs) {
     const row = document.createElement("div");
     row.className = "ref-item";
     row.innerHTML = `
@@ -328,12 +430,12 @@ function renderRefs(sec) {
       if (ref.link) {
         window.open(ref.link, "_blank", "noopener");
       } else {
-        openRefDialog(sec.id, ref.id);
+        openRefDialog(ref.id);
       }
     });
     row.addEventListener("dblclick", (e) => {
       e.stopPropagation();
-      openRefDialog(sec.id, ref.id);
+      openRefDialog(ref.id);
     });
     refItems.appendChild(row);
   }
@@ -350,14 +452,11 @@ const refNoteInput = document.getElementById("refNote");
 const deleteRefBtn = document.getElementById("deleteRefBtn");
 const cancelRefBtn = document.getElementById("cancelRefBtn");
 
-let refSectionId = null;
-
-function openRefDialog(sectionId, refId) {
-  refSectionId = sectionId;
+function openRefDialog(refId) {
   refIdInput.value = refId || "";
   if (refId) {
-    const sec = data.sections.find(s => s.id === sectionId);
-    const ref = sec.refs.find(r => r.id === refId);
+    const container = getActiveContainer();
+    const ref = container.refs.find(r => r.id === refId);
     refDialogTitle.textContent = "Edit Reference";
     refTitleInput.value = ref.title;
     refTypeInput.value = ref.type;
@@ -377,24 +476,24 @@ function openRefDialog(sectionId, refId) {
 }
 
 refNotesEl.addEventListener("blur", () => {
-  const sec = getActiveSection();
-  if (!sec) return;
-  sec.notes = refNotesEl.value;
+  const container = getActiveContainer();
+  if (!container) return;
+  container.notes = refNotesEl.value;
   save();
 });
 
 document.getElementById("addRefBtn").addEventListener("click", () => {
-  const sec = getActiveSection();
-  if (!sec) return;
+  const container = getActiveContainer();
+  if (!container) return;
   document.getElementById("readingList").open = true;
-  openRefDialog(sec.id, null);
+  openRefDialog(null);
 });
 
 cancelRefBtn.addEventListener("click", () => refDialog.close());
 
 refForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const sec = data.sections.find(s => s.id === refSectionId);
+  const container = getActiveContainer();
   const refId = refIdInput.value;
   const refData = {
     title: refTitleInput.value.trim(),
@@ -403,28 +502,26 @@ refForm.addEventListener("submit", (e) => {
     note: refNoteInput.value.trim(),
   };
   if (refId) {
-    Object.assign(sec.refs.find(r => r.id === refId), refData);
+    Object.assign(container.refs.find(r => r.id === refId), refData);
   } else {
-    sec.refs.push({ id: cid(), ...refData });
+    container.refs.push({ id: cid(), ...refData });
   }
   save();
-  document.getElementById("readingList").open = true;
   render();
   document.getElementById("readingList").open = true;
   refDialog.close();
 });
 
 deleteRefBtn.addEventListener("click", () => {
-  const sec = data.sections.find(s => s.id === refSectionId);
-  sec.refs = sec.refs.filter(r => r.id !== refIdInput.value);
+  const container = getActiveContainer();
+  container.refs = container.refs.filter(r => r.id !== refIdInput.value);
   save();
-  document.getElementById("readingList").open = true;
   render();
   document.getElementById("readingList").open = true;
   refDialog.close();
 });
 
-// ================= SECTIONS =================
+// ================= SECTIONS (top level) =================
 const sectionDialog = document.getElementById("sectionDialog");
 const sectionForm = document.getElementById("sectionForm");
 const sectionDialogTitle = document.getElementById("sectionDialogTitle");
@@ -442,17 +539,6 @@ document.getElementById("addSectionBtn").addEventListener("click", () => {
   sectionNameInput.focus();
 });
 
-document.getElementById("renameSectionBtn").addEventListener("click", () => {
-  const sec = getActiveSection();
-  if (!sec) return;
-  sectionDialogTitle.textContent = "Edit Section";
-  sectionEditIdInput.value = sec.id;
-  sectionNameInput.value = sec.name;
-  sectionDescInput.value = sec.desc || "";
-  sectionDialog.showModal();
-  sectionNameInput.focus();
-});
-
 cancelSectionBtn.addEventListener("click", () => sectionDialog.close());
 
 sectionForm.addEventListener("submit", (e) => {
@@ -463,23 +549,110 @@ sectionForm.addEventListener("submit", (e) => {
     sec.name = sectionNameInput.value.trim();
     sec.desc = sectionDescInput.value.trim();
   } else {
-    const sec = { id: cid(), name: sectionNameInput.value.trim(), desc: sectionDescInput.value.trim(), entries: [], refs: [] };
+    const sec = Object.assign(newContainer(sectionNameInput.value.trim(), sectionDescInput.value.trim()), { subsections: [] });
     data.sections.push(sec);
     activeSectionId = sec.id;
+    activeSubsectionId = null;
   }
   save();
   render();
   sectionDialog.close();
 });
 
-document.getElementById("deleteSectionBtn").addEventListener("click", () => {
+// ================= CATEGORIES (subsections) =================
+const categoryDialog = document.getElementById("categoryDialog");
+const categoryForm = document.getElementById("categoryForm");
+const categoryDialogTitle = document.getElementById("categoryDialogTitle");
+const categoryEditIdInput = document.getElementById("categoryEditId");
+const categoryNameInput = document.getElementById("categoryName");
+const categoryDescInput = document.getElementById("categoryDescInput");
+const deleteCategoryBtn = document.getElementById("deleteCategoryBtn");
+const cancelCategoryBtn = document.getElementById("cancelCategoryBtn");
+
+addCategoryBtn.addEventListener("click", () => {
+  categoryDialogTitle.textContent = "New Category";
+  categoryEditIdInput.value = "";
+  categoryNameInput.value = "";
+  categoryDescInput.value = "";
+  deleteCategoryBtn.style.display = "none";
+  categoryDialog.showModal();
+  categoryNameInput.focus();
+});
+
+cancelCategoryBtn.addEventListener("click", () => categoryDialog.close());
+
+categoryForm.addEventListener("submit", (e) => {
+  e.preventDefault();
   const sec = getActiveSection();
-  if (!sec) return;
-  if (!confirm(`Delete section "${sec.name}" and all its entries?`)) return;
-  data.sections = data.sections.filter(s => s.id !== sec.id);
-  activeSectionId = data.sections[0]?.id || null;
+  const editId = categoryEditIdInput.value;
+  if (editId) {
+    const sub = sec.subsections.find(c => c.id === editId);
+    sub.name = categoryNameInput.value.trim();
+    sub.desc = categoryDescInput.value.trim();
+  } else {
+    const sub = newContainer(categoryNameInput.value.trim(), categoryDescInput.value.trim());
+    sec.subsections.push(sub);
+  }
   save();
   render();
+  categoryDialog.close();
+});
+
+deleteCategoryBtn.addEventListener("click", () => {
+  const sec = getActiveSection();
+  const editId = categoryEditIdInput.value;
+  const sub = sec.subsections.find(c => c.id === editId);
+  if (!confirm(`Delete category "${sub.name}" and all its pages?`)) return;
+  sec.subsections = sec.subsections.filter(c => c.id !== editId);
+  if (activeSubsectionId === editId) activeSubsectionId = null;
+  save();
+  render();
+  categoryDialog.close();
+});
+
+// ================= RENAME / DELETE (current container) =================
+document.getElementById("renameSectionBtn").addEventListener("click", () => {
+  if (activeSubsectionId) {
+    const sec = getActiveSection();
+    const sub = sec.subsections.find(c => c.id === activeSubsectionId);
+    categoryDialogTitle.textContent = "Edit Category";
+    categoryEditIdInput.value = sub.id;
+    categoryNameInput.value = sub.name;
+    categoryDescInput.value = sub.desc || "";
+    deleteCategoryBtn.style.display = "inline-block";
+    categoryDialog.showModal();
+    categoryNameInput.focus();
+  } else {
+    const sec = getActiveSection();
+    if (!sec) return;
+    sectionDialogTitle.textContent = "Edit Section";
+    sectionEditIdInput.value = sec.id;
+    sectionNameInput.value = sec.name;
+    sectionDescInput.value = sec.desc || "";
+    sectionDialog.showModal();
+    sectionNameInput.focus();
+  }
+});
+
+document.getElementById("deleteSectionBtn").addEventListener("click", () => {
+  if (activeSubsectionId) {
+    const sec = getActiveSection();
+    const sub = sec.subsections.find(c => c.id === activeSubsectionId);
+    if (!confirm(`Delete category "${sub.name}" and all its pages?`)) return;
+    sec.subsections = sec.subsections.filter(c => c.id !== activeSubsectionId);
+    activeSubsectionId = null;
+    save();
+    render();
+  } else {
+    const sec = getActiveSection();
+    if (!sec) return;
+    if (!confirm(`Delete section "${sec.name}", all its categories, and all its pages?`)) return;
+    data.sections = data.sections.filter(s => s.id !== sec.id);
+    activeSectionId = data.sections[0]?.id || null;
+    activeSubsectionId = null;
+    save();
+    render();
+  }
 });
 
 render();
