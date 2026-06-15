@@ -16,11 +16,27 @@
       <h1>Commonplace</h1>
       <p class="tagline">A working record of study</p>
     </div>
+    <button id="homeNavBtn" class="nav-item home-nav-item">Home</button>
     <nav id="sectionNav"></nav>
     <button id="addSectionBtn" class="ghost-btn">+ New Section</button>
   </aside>
 
   <main class="content">
+
+    <!-- HOME VIEW -->
+    <div id="homeView" hidden>
+      <header class="content-header">
+        <div>
+          <h2>Commonplace</h2>
+          <p class="section-desc">An overview of your sections and recent writing.</p>
+        </div>
+      </header>
+
+      <div id="homeSectionGrid" class="category-grid home-grid"></div>
+
+      <h3 class="home-subheading">Recently updated</h3>
+      <div id="homeRecentList" class="entry-list"></div>
+    </div>
 
     <!-- LIST VIEW -->
     <div id="listView">

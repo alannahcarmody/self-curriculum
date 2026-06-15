@@ -58,8 +58,8 @@ function save() {
 }
 
 let data = load();
-let activeSectionId = data.sections[0]?.id || null;
-let activeSubsectionId = null;
+let activeSectionId = null;
+let activeSubsectionId = "home";
 
 const sectionNav = document.getElementById("sectionNav");
 const sectionTitle = document.getElementById("sectionTitle");
@@ -71,6 +71,7 @@ const addCategoryBtn = document.getElementById("addCategoryBtn");
 
 const listView = document.getElementById("listView");
 const pageView = document.getElementById("pageView");
+const homeView = document.getElementById("homeView");
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -102,12 +103,77 @@ function findContainer(sectionId, subsectionId) {
 function showView(view) {
   listView.hidden = view !== "list";
   pageView.hidden = view !== "page";
+  homeView.hidden = view !== "home";
 }
 
 function render() {
   renderNav();
+  if (activeSectionId === null && activeSubsectionId === "home") {
+    renderHome();
+    showView("home");
+    return;
+  }
   renderContent();
   showView("list");
+}
+
+function goHome() {
+  activeSectionId = null;
+  activeSubsectionId = "home";
+  render();
+}
+
+document.getElementById("homeNavBtn").addEventListener("click", goHome);
+
+function renderHome() {
+  const grid = document.getElementById("homeSectionGrid");
+  grid.innerHTML = "";
+  for (const sec of data.sections) {
+    const totalPages = sec.entries.length + sec.subsections.reduce((n, s) => n + s.entries.length, 0);
+    const card = document.createElement("button");
+    card.className = "category-card";
+    card.innerHTML = `
+      ${sec.cover ? `<img class="category-card-cover" src="${sec.cover}" alt="">` : ""}
+      <h4>${escapeHtml(sec.name)}</h4>
+      ${sec.desc ? `<p>${escapeHtml(sec.desc)}</p>` : ""}
+      <span class="category-count">${totalPages} page${totalPages === 1 ? "" : "s"}${sec.subsections.length ? ` · ${sec.subsections.length} categor${sec.subsections.length === 1 ? "y" : "ies"}` : ""}</span>
+    `;
+    card.addEventListener("click", () => {
+      activeSectionId = sec.id;
+      activeSubsectionId = null;
+      render();
+    });
+    grid.appendChild(card);
+  }
+
+  // Recently updated pages across all sections/categories
+  const all = [];
+  for (const sec of data.sections) {
+    for (const e of sec.entries) all.push({ entry: e, sectionId: sec.id, subsectionId: null, sectionName: sec.name });
+    for (const sub of sec.subsections) {
+      for (const e of sub.entries) all.push({ entry: e, sectionId: sec.id, subsectionId: sub.id, sectionName: `${sec.name} / ${sub.name}` });
+    }
+  }
+  all.sort((a, b) => (b.entry.date || "").localeCompare(a.entry.date || ""));
+
+  const recentList = document.getElementById("homeRecentList");
+  recentList.innerHTML = "";
+  if (all.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Nothing written yet. Pick a section to get started.";
+    recentList.appendChild(empty);
+    return;
+  }
+  for (const item of all.slice(0, 10)) {
+    const card = renderEntryCard(item.entry);
+    const path = document.createElement("p");
+    path.className = "home-recent-path";
+    path.textContent = item.sectionName;
+    card.insertBefore(path, card.firstChild);
+    card.onclick = () => openPage(item.sectionId, item.subsectionId, item.entry.id);
+    recentList.appendChild(card);
+  }
 }
 
 // ================= UNDO =================
@@ -140,6 +206,7 @@ function snapshot() {
 
 // ================= NAV =================
 function renderNav() {
+  document.getElementById("homeNavBtn").classList.toggle("active", activeSectionId === null);
   sectionNav.innerHTML = "";
   for (const sec of data.sections) {
     const btn = document.createElement("button");

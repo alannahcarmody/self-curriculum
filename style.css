@@ -535,6 +535,33 @@ dialog textarea { resize: vertical; line-height: 1.5; }
   font-style: italic;
 }
 
+.home-nav-item {
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 0.85rem;
+}
+
+.home-grid { margin-bottom: 2rem; }
+.home-grid .category-card h4 { font-size: 1.15rem; }
+.home-subheading {
+  font-family: "Inter", sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+.home-recent-path {
+  font-family: "Inter", sans-serif;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin: 0 0 0.2rem;
+}
+
 /* Cover image */
 .cover-wrap {
   position: relative;
