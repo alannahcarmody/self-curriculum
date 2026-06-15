@@ -21,39 +21,68 @@
   </aside>
 
   <main class="content">
-    <header class="content-header">
-      <div>
-        <h2 id="sectionTitle"></h2>
-        <p id="sectionDesc" class="section-desc"></p>
-      </div>
-      <div class="header-actions">
-        <button id="renameSectionBtn" class="ghost-btn">Rename</button>
-        <button id="deleteSectionBtn" class="ghost-btn danger">Delete Section</button>
-        <button id="addEntryBtn">+ New Entry</button>
-      </div>
-    </header>
 
-    <div id="entryList" class="entry-list"></div>
+    <!-- LIST VIEW -->
+    <div id="listView">
+      <header class="content-header">
+        <div>
+          <h2 id="sectionTitle"></h2>
+          <p id="sectionDesc" class="section-desc"></p>
+        </div>
+        <div class="header-actions">
+          <button id="renameSectionBtn" class="ghost-btn">Rename</button>
+          <button id="deleteSectionBtn" class="ghost-btn danger">Delete Section</button>
+          <button id="addEntryBtn">+ New Entry</button>
+        </div>
+      </header>
+
+      <details class="reading-list" id="readingList">
+        <summary>Reading List &amp; References <span id="refCount" class="ref-count"></span></summary>
+        <div id="refItems" class="ref-items"></div>
+        <button id="addRefBtn" class="ghost-btn">+ Add Reference</button>
+      </details>
+
+      <div id="entryList" class="entry-list"></div>
+    </div>
+
+    <!-- READ VIEW -->
+    <article id="readView" class="page-view" hidden>
+      <div class="page-toolbar">
+        <button id="backFromReadBtn" class="ghost-btn">&larr; Back</button>
+        <div class="page-toolbar-actions">
+          <button id="editEntryBtn" class="ghost-btn">Edit</button>
+          <button id="deleteEntryFromReadBtn" class="ghost-btn danger">Delete</button>
+        </div>
+      </div>
+      <h1 id="viewTitle" class="page-title"></h1>
+      <p class="entry-meta" id="viewMeta"></p>
+      <p id="viewRef" class="entry-ref"></p>
+      <div id="viewBody" class="entry-body"></div>
+    </article>
+
+    <!-- EDIT VIEW -->
+    <div id="editView" class="page-view" hidden>
+      <div class="page-toolbar">
+        <button id="backFromEditBtn" class="ghost-btn">&larr; Cancel</button>
+        <div class="page-toolbar-actions">
+          <button id="insertImageBtn" class="ghost-btn">Insert Image</button>
+          <button id="saveEntryBtn">Save</button>
+        </div>
+      </div>
+      <input type="hidden" id="sectionId">
+      <input type="hidden" id="entryId">
+      <input type="text" id="entryTitle" class="title-input" placeholder="Entry title" required>
+      <div class="meta-fields">
+        <label>Date<input type="date" id="entryDate"></label>
+        <label>Tags <span class="hint">(comma separated)</span><input type="text" id="entryTags" placeholder="e.g. Stoicism, Roman history"></label>
+        <label>Source / Reference <span class="hint">(book, article, link...)</span><input type="text" id="entryRef"></label>
+      </div>
+      <div id="entryBody" class="entry-body editable" contenteditable="true" data-placeholder="Write your notes and analysis here..."></div>
+      <input type="file" id="imageFileInput" accept="image/*" hidden>
+    </div>
+
   </main>
 </div>
-
-<dialog id="entryDialog">
-  <form id="entryForm">
-    <h2 id="entryDialogTitle">New Entry</h2>
-    <input type="hidden" id="sectionId">
-    <input type="hidden" id="entryId">
-    <label>Title<input type="text" id="entryTitle" required></label>
-    <label>Date<input type="date" id="entryDate"></label>
-    <label>Tags <span class="hint">(comma separated)</span><input type="text" id="entryTags" placeholder="e.g. Stoicism, Roman history"></label>
-    <label>Source / Reference <span class="hint">(book, article, link...)</span><input type="text" id="entryRef"></label>
-    <label>Notes &amp; Analysis<textarea id="entryBody" rows="10"></textarea></label>
-    <div class="dialog-actions">
-      <button type="button" id="deleteEntryBtn">Delete</button>
-      <button type="button" id="cancelEntryBtn">Cancel</button>
-      <button type="submit">Save</button>
-    </div>
-  </form>
-</dialog>
 
 <dialog id="sectionDialog">
   <form id="sectionForm">
@@ -68,21 +97,26 @@
   </form>
 </dialog>
 
-<dialog id="entryViewDialog">
-  <div class="entry-view">
-    <div class="entry-view-header">
-      <div>
-        <h2 id="viewTitle"></h2>
-        <p class="entry-meta" id="viewMeta"></p>
-      </div>
-      <button id="editEntryBtn" class="ghost-btn">Edit</button>
-    </div>
-    <p id="viewRef" class="entry-ref"></p>
-    <div id="viewBody" class="entry-body"></div>
+<dialog id="refDialog">
+  <form id="refForm">
+    <h2 id="refDialogTitle">Add Reference</h2>
+    <input type="hidden" id="refId">
+    <label>Title<input type="text" id="refTitle" required placeholder="e.g. Meditations, Marcus Aurelius"></label>
+    <label>Type<select id="refType">
+      <option value="book">Book</option>
+      <option value="article">Article</option>
+      <option value="paper">Paper</option>
+      <option value="topic">Topic to explore</option>
+      <option value="other">Other</option>
+    </select></label>
+    <label>Link <span class="hint">(optional)</span><input type="text" id="refLink" placeholder="https://..."></label>
+    <label>Note <span class="hint">(optional)</span><input type="text" id="refNote"></label>
     <div class="dialog-actions">
-      <button type="button" id="closeViewBtn">Close</button>
+      <button type="button" id="deleteRefBtn">Delete</button>
+      <button type="button" id="cancelRefBtn">Cancel</button>
+      <button type="submit">Save</button>
     </div>
-  </div>
+  </form>
 </dialog>
 
 <script src="app.js"></script>
