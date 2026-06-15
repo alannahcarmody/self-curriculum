@@ -9,6 +9,8 @@ function newContainer(name, desc) {
 }
 
 const DEFAULT_DATA = {
+  homeIntro: "",
+  homeLinks: [],
   sections: [
     Object.assign(newContainer("Articles & Notes", "Articles read, with notes and analysis."), { subsections: [] }),
     Object.assign(newContainer("Books & Analysis", "Books read, with reflections and arguments."), { subsections: [] }),
@@ -35,6 +37,8 @@ function load() {
   try {
     const parsed = JSON.parse(raw);
     if (!parsed.sections) return structuredClone(DEFAULT_DATA);
+    if (parsed.homeIntro === undefined) parsed.homeIntro = "";
+    if (!parsed.homeLinks) parsed.homeLinks = [];
     for (const sec of parsed.sections) {
       normalizeContainer(sec);
       if (!sec.subsections) sec.subsections = [];
@@ -126,6 +130,9 @@ function goHome() {
 document.getElementById("homeNavBtn").addEventListener("click", goHome);
 
 function renderHome() {
+  document.getElementById("homeIntro").innerHTML = data.homeIntro || "";
+  renderHomeLinks();
+
   const grid = document.getElementById("homeSectionGrid");
   grid.innerHTML = "";
   for (const sec of data.sections) {
@@ -839,6 +846,109 @@ document.getElementById("deleteSectionBtn").addEventListener("click", () => {
     render();
     offerUndo(`Section "${sec.name}" deleted.`, before);
   }
+});
+
+// ================= HOME: INTRO + LINKS =================
+document.getElementById("homeIntro").addEventListener("blur", () => {
+  data.homeIntro = document.getElementById("homeIntro").innerHTML;
+  save();
+});
+
+function renderHomeLinks() {
+  const list = document.getElementById("homeLinks");
+  list.innerHTML = "";
+  if (data.homeLinks.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "ref-empty";
+    empty.textContent = "No links yet.";
+    list.appendChild(empty);
+    return;
+  }
+  for (const link of data.homeLinks) {
+    const row = document.createElement("div");
+    row.className = "ref-item";
+
+    const main = document.createElement("div");
+    main.className = "ref-item-main";
+    main.innerHTML = `<span class="ref-title">${escapeHtml(link.title)}</span>`;
+    main.addEventListener("click", () => window.open(link.url, "_blank", "noopener"));
+    row.appendChild(main);
+
+    const actions = document.createElement("div");
+    actions.className = "ref-item-actions";
+    const editBtn = document.createElement("button");
+    editBtn.className = "ref-icon-btn";
+    editBtn.textContent = "Edit";
+    editBtn.addEventListener("click", (e) => { e.stopPropagation(); openHomeLinkDialog(link.id); });
+    const delBtn = document.createElement("button");
+    delBtn.className = "ref-icon-btn";
+    delBtn.textContent = "Remove";
+    delBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const before = snapshot();
+      data.homeLinks = data.homeLinks.filter(l => l.id !== link.id);
+      save();
+      renderHomeLinks();
+      offerUndo("Link removed.", before);
+    });
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(actions);
+
+    list.appendChild(row);
+  }
+}
+
+const homeLinkDialog = document.getElementById("homeLinkDialog");
+const homeLinkForm = document.getElementById("homeLinkForm");
+const homeLinkDialogTitle = document.getElementById("homeLinkDialogTitle");
+const homeLinkIdInput = document.getElementById("homeLinkId");
+const homeLinkTitleInput = document.getElementById("homeLinkTitle");
+const homeLinkUrlInput = document.getElementById("homeLinkUrl");
+const deleteHomeLinkBtn = document.getElementById("deleteHomeLinkBtn");
+
+function openHomeLinkDialog(linkId) {
+  homeLinkIdInput.value = linkId || "";
+  if (linkId) {
+    const link = data.homeLinks.find(l => l.id === linkId);
+    homeLinkDialogTitle.textContent = "Edit Link";
+    homeLinkTitleInput.value = link.title;
+    homeLinkUrlInput.value = link.url;
+    deleteHomeLinkBtn.style.display = "inline-block";
+  } else {
+    homeLinkDialogTitle.textContent = "Add Link";
+    homeLinkTitleInput.value = "";
+    homeLinkUrlInput.value = "";
+    deleteHomeLinkBtn.style.display = "none";
+  }
+  homeLinkDialog.showModal();
+  homeLinkTitleInput.focus();
+}
+
+document.getElementById("addHomeLinkBtn").addEventListener("click", () => openHomeLinkDialog(null));
+document.getElementById("cancelHomeLinkBtn").addEventListener("click", () => homeLinkDialog.close());
+
+homeLinkForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const linkId = homeLinkIdInput.value;
+  const linkData = { title: homeLinkTitleInput.value.trim(), url: homeLinkUrlInput.value.trim() };
+  if (linkId) {
+    Object.assign(data.homeLinks.find(l => l.id === linkId), linkData);
+  } else {
+    data.homeLinks.push({ id: cid(), ...linkData });
+  }
+  save();
+  renderHomeLinks();
+  homeLinkDialog.close();
+});
+
+deleteHomeLinkBtn.addEventListener("click", () => {
+  const before = snapshot();
+  data.homeLinks = data.homeLinks.filter(l => l.id !== homeLinkIdInput.value);
+  save();
+  renderHomeLinks();
+  homeLinkDialog.close();
+  offerUndo("Link removed.", before);
 });
 
 render();

@@ -32,6 +32,12 @@
         </div>
       </header>
 
+      <div id="homeIntro" class="entry-body editable home-intro" contenteditable="true" data-placeholder="Write a few words about what this is, what you're working toward, or how you're feeling about it..."></div>
+
+      <h3 class="home-subheading">Links</h3>
+      <div id="homeLinks" class="ref-items"></div>
+      <button id="addHomeLinkBtn" class="ghost-btn">+ Add Link</button>
+
       <div id="homeSectionGrid" class="category-grid home-grid"></div>
 
       <h3 class="home-subheading">Recently updated</h3>
@@ -115,6 +121,20 @@
   <span id="undoMessage"></span>
   <button id="undoBtn">Undo</button>
 </div>
+
+<dialog id="homeLinkDialog">
+  <form id="homeLinkForm">
+    <h2 id="homeLinkDialogTitle">Add Link</h2>
+    <input type="hidden" id="homeLinkId">
+    <label>Title<input type="text" id="homeLinkTitle" required placeholder="e.g. Khan Academy"></label>
+    <label>URL<input type="text" id="homeLinkUrl" required placeholder="https://..."></label>
+    <div class="dialog-actions">
+      <button type="button" id="deleteHomeLinkBtn">Delete</button>
+      <button type="button" id="cancelHomeLinkBtn">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="sectionDialog">
   <form id="sectionForm">

@@ -541,7 +541,12 @@ dialog textarea { resize: vertical; line-height: 1.5; }
   padding-bottom: 0.85rem;
 }
 
-.home-grid { margin-bottom: 2rem; }
+.home-intro {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  min-height: 2.5rem;
+}
+.home-grid { margin-top: 0.5rem; margin-bottom: 2rem; }
 .home-grid .category-card h4 { font-size: 1.15rem; }
 .home-subheading {
   font-family: "Inter", sans-serif;
